@@ -39,9 +39,9 @@ make build
     1. - [x] se3Log
     1. - [x] se3Exp
     1. - [x] imreadbw
-    1. - [ ] calcResiduals
+    1. - [x] calcResiduals
     1. - [ ] deriveResidualsAnalytic
-    1. - [ ] deriveResidualsNumeric
+    1. - [x] deriveResidualsNumeric
     1. - [ ] downscale
     1. - [ ] doAlignment
 

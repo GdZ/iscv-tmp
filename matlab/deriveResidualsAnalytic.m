@@ -60,7 +60,7 @@ dxI(:,2:(end-1)) = 0.5*(I(:,3:(end)) - I(:,1:(end-2)));
 dxInterp = K(1,1) * reshape(interp2(dxI, xImg+1, yImg+1),size(I,1) * size(I,2),1);
 dyInterp = K(2,2) * reshape(interp2(dyI, xImg+1, yImg+1),size(I,1) * size(I,2),1);
 
-% 2.: get warped 3d points (x', y', z').
+% 2.: get warped 3d points (x', y', z'). '
 xp = reshape(xp,size(I,1) * size(I,2),1);
 yp = reshape(yp,size(I,1) * size(I,2),1);
 zp = reshape(zp,size(I,1) * size(I,2),1);
