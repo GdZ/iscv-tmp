@@ -6,6 +6,9 @@ download:
 	mkdir tmp
 	mv *.tgz tmp
 
+docker:
+	docker run -d -v $(PWD):/apps --name iscv -it zgd521/vnc:latest /bin/bash
+
 clean:
 	rm -vf rgbd_dataset_freiburg2_desk.tgz
 
