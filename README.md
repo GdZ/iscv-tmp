@@ -1,5 +1,11 @@
 # iscv-tmp
 
+## system require
+
+1. axel
+2. python
+3. make
+
 ## some command
 
 1. download dataset
