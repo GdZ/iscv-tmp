@@ -36,28 +36,59 @@ make build
 
 1. rewrite matlab code to python
 
-    1. - [x] se3Log
-    1. - [x] se3Exp
-    1. - [x] imreadbw
-    1. - [x] calcResiduals
-    1. - [ ] deriveResidualsAnalytic
-    1. - [x] deriveResidualsNumeric
-    1. - [ ] downscale
-    1. - [ ] doAlignment
+    | task modules              | deadline   | status        |
+    | ------------------------- | ---------- | ------------- |
+    | `se3Log`                  | 14.06.2020 | *implemented* |
+    | `se3Exp`                  | 14.06.2020 | *implemented* |
+    | `imreadbw`                | 14.06.2020 | *implemented* |
+    | `calcResiduals`           | 14.06.2020 | *implemented* |
+    | `deriveResidualsAnalytic` | 14.06.2020 |               |
+    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
+    | `downscale`               | 14.06.2020 | **ongoing**   |
+    | `doAlignment`             | 14.06.2020 |               |
 
 2. every 9 frame as a key-frame
 
-    1. - [ ] pending
+    | task modules                 | deadline | status |
+    | ---------------------------- | -------- | ------ |
+    | compute 9 photos for a group |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
+    |                              |          |        |
 
 
 3. optimal key-frame
    
-    1. - [ ] pending
-
+    | task modules | deadline | status |
+    | ------------ | -------- | ------ |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
 
 4. second party
    
-    1. - [ ] pending
+    | task modules | deadline | status |
+    | ------------ | -------- | ------ |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
+    |              |          |        |
 
 
 5. pending
