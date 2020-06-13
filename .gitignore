@@ -5,8 +5,19 @@ __pycache__/
 .idea/
 
 # resource
-*.png
+/solution/data/*/*.png
 data/
+rgbd/
+*.tgz
+
+# no need to project
+github.xml
+inspection/
+markdown.xml
+_linux/
+debugger.xml
+colors.scheme.xml
+
 
 # C extensions
 *.so

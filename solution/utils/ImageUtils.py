@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+import numpy as np
+from skimage import io
+from scipy.linalg import expm
+from scipy.linalg import logm
+from matplotlib import pyplot as plt
+from scipy.interpolate import interp2d
+
+
+def imreadbw(fname):
+    return io.imread(fname, as_gray=True)
+
+
+def downscale(I, D, K, level):
+    if level <= 1:
+        Id = I
+        Dd = D
+        Kd = K
+    else:
+        Kd = np.zeros(shape=(3, 3))
+        Kd[0, 0] = K[0, 0] / 2
+        Kd[0, 2] = (K[0, 2] + .5) / 2 - .5
+        Kd[1, 1] = K[1, 1] / 2
+        Kd[1, 2] = (K[1, 2] + .5) / 2 - .5
+        Kd[2, :] = [0, 0, 1]
+
+        Id = I
+
+        Dd = D
+
+    return Id, Dd, Kd
+
+
+def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
+    Jac, residual, weights = [], [], []
+    T = se3Exp(xi)
+    R = T[:3, :3]
+    t = T[:3, 4]
+    KInv = K**(-1)
+    RKInv = R * K**(-1)
+
+    xImg = np.zeros_like(IRef) - 10
+    yImg = np.zeros_like(IRef) - 10
+    xp, yp, zp = np.zeros_like(IRef), np.zeros_like(IRef), np.zeros_like(IRef)
+    wxp, wyp, wzp = np.zeros_like(IRef), np.zeros_like(IRef), np.zeros_like(IRef)
+
+    for x in np.arange(IRef.shape[1]):
+        for y in np.arange(IRef.shape[0]):
+            p = DRef[y, x] * KInv * np.array([[x-1], [y-1], 1])
+            pTrans = R * p + t
+            if pTrans[2] > 0 and DRef[y,x] > 0:
+                pTransProj = K * pTrans
+                xImg[y, x] = pTransProj[0] / pTransProj[2]
+                yImg[y, x] = pTransProj[1] / pTransProj[2]
+                xp, yp, zp = p
+                wxp, wyp, wzp = pTrans
+
+    # ========= calculate actual derivative. ===============
+    # 1.: calculate image derivatives, and interpolate at warped positions.
+
+    # % 2.: get warped 3d points (x', y', z').
+
+    # % 3. Jacobian calculation
+
+
+
+    return Jac, residual, weights
+
+
+def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
+    Jac, residual, weights = [], [], []
+    eps = 1e-6
+    Jac = np.zeros(I.shape, 6)
+    residuals, weights = calcResiduals(IRef, DRef, I, xi, K,
+                                       norm_param, use_hubernorm)
+    for j in np.arange(6):
+        epsVec = np.zeros(6, 1)
+        epsVec[j] = eps
+        xiPerm = se3Log(se3Exp(epsVec) * se3Exp(xi))
+        Jac[:, j] = (calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm) - residuals) / eps
+
+    return Jac, residuals, weights
+
+
+def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
+    resdual, weights = [], []
+    T = se3Exp(xi)
+    R = T[:3, :3]
+    t = T[:3, 4]
+    KInv = K**(-1)
+    xImg = np.zeros_like(IRef) - 10
+    yImg = np.zeros_like(IRef) - 10
+
+    for x in np.arange(IRef.shape[1]):
+        for y in np.arange(IRef.shape[1]):
+            p = DRef[y, x] * KInv * np.array([[x-1], [y-1], [0]])
+            pTrans = K * (R * p + t)
+            if pTrans[2] > 0 and DRef[y, x] > 0:
+                xImg[y, x] = pTrans[0] / pTrans[2] + 1
+                xImg[y, x] = pTrans[1] / pTrans[2] + 1
+
+    residuals = IRef - interp2d(I, xImg, yImg)
+    weights = 0 * residuals + 1
+    if use_hubernorm:
+        idx = np.abs(residuals) > norm_param
+        weights[idx] = norm_param / np.abs(residuals[idx])
+    else:
+        weights = 2. / (1. + residuals**2/norm_param**2)**2
+
+    # plot residual
+    # not implement
+
+    # plot weight
+    # not implement
+
+    return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
+
+
+def downscale(I, D, K, level):
+    if level <= 1:
+        Id = I
+        Dd = D
+        Kd = K
+    else:
+        Kd = np.zeros(shape=(3, 3))
+        Kd[0, 0] = K[0, 0] / 2
+        Kd[0, 2] = (K[0, 2] + .5) / 2 - .5
+        Kd[1, 1] = K[1, 1] / 2
+        Kd[1, 2] = (K[1, 2] + .5) / 2 - .5
+        Kd[2, :] = [0, 0, 1]
+
+        # Id =
+
+    return (Id, Dd, Kd)
+
+
+def se3Log(x):
+    lg = logm(x)
+    twist = np.array([lg[0, 3], lg[1, 3], lg[2, 3],
+                      lg[2, 1], lg[0, 2], lg[1, 0]]).T
+    return twist
+
+
+def se3Exp(x):
+    M = np.array([[0, -x[5], x[4], x[0]],
+                  [x[5], 0, -x[3], x[1]],
+                  [-x[4], x[3], 0, x[2]],
+                  [0, 0, 0, 0]])
+
+    return expm(M)
+
