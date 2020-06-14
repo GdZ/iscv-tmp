@@ -133,14 +133,14 @@ def downscale(I, D, K, level):
     return (Id, Dd, Kd)
 
 
-def alignment(rgbs, depths):
+def alignment(input_dir, rgbs, depths):
     # % first pair of input frames
     K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
     # %c2 = double(imreadbw('rgb/1305031102.175304_broken.png'));
-    c2 = np.double(imreadbw('rgb/1305031102.175304.png'))
-    c1 = np.double(imreadbw('rgb/1305031102.275326.png'))
-    d2 = np.double(plt.imread('depth/1305031102.160407.png')) / 5000
-    d1 = np.double(plt.imread('depth/1305031102.262886.png')) / 5000
+    c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[0])))
+    c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[1])))
+    d2 = np.double(plt.imread('{}/{}'.format(input_dir, depths[0]))) / 5000
+    d1 = np.double(plt.imread('{}/{}'.format(input_dir, depths[1]))) / 5000
     # % result:
     # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
     # % set to zero to use Geman-McClure norm

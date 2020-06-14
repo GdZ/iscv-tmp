@@ -45,7 +45,7 @@ make build
     | `deriveResidualsAnalytic` | 14.06.2020 |               |
     | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
     | `downscale`               | 14.06.2020 | **ongoing**   |
-    | `doAlignment`             | 14.06.2020 |               |
+    | `doAlignment`             | 14.06.2020 | *implemented* |
 
 2. every 9 frame as a key-frame
 
