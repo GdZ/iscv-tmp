@@ -24,10 +24,19 @@ def downscale(I, D, K, level):
         Kd[1, 2] = (K[1, 2] + .5) / 2 - .5
         Kd[2, :] = [0, 0, 1]
 
-        Id = I
+        xsI, ysI = I.shape
+        idxI, idyI = np.arange(xsI, step=2), np.arange(ysI, step=2)
+        Id = (I[idxI, idyI] + I[1+idxI, idyI] + I[idxI, 1 + idyI] + I[1+idxI, 1+idyI])*.25
+        xsD, ysD = D.shape
+        idxD, idyD = np.arange(xsD, step=2), np.arange(ysD, step=2)
+        DdCountValid = np.sign(D[idxD, idyD]) + \
+                       np.sign(D[1 + idxD, idyD]) + \
+                       np.sign(D[idxD, 1+idyD]) + \
+                       np.sign(D[1+idxD, 1+idyD])
+        Dd = (D[idxD, idyD] + D[1 + idxD, idyD] + D[idxD, 1+idyD] + D[1+idxD, 1+idyD]) / DdCountValid
+        Dd[Dd.isna()] = 0
 
-        Dd = D
-
+        Id, Dd, Kd = downscale(Id, Dd, Kd, level - 1)
     return Id, Dd, Kd
 
 
@@ -139,8 +148,8 @@ def alignment(input_dir, rgbs, depths):
     # %c2 = double(imreadbw('rgb/1305031102.175304_broken.png'));
     c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[0])))
     c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[1])))
-    d2 = np.double(plt.imread('{}/{}'.format(input_dir, depths[0]))) / 5000
-    d1 = np.double(plt.imread('{}/{}'.format(input_dir, depths[1]))) / 5000
+    d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[0]))) / 5000
+    d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[1]))) / 5000
     # % result:
     # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
     # % set to zero to use Geman-McClure norm
