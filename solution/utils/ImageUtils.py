@@ -10,7 +10,7 @@ from scipy.interpolate import interp2d
 def imreadbw(fname):
     return io.imread(fname, as_gray=True)
 
-
+"""
 def downscale(I, D, K, level):
     if level <= 1:
         Id = I
@@ -29,6 +29,35 @@ def downscale(I, D, K, level):
         Dd = D
 
     return Id, Dd, Kd
+"""
+def downscale(I, D, K, level):
+    if level < 1:
+        Id = I
+        Dd = D
+        Kd = K
+        return Id, Dd, Kd
+    else:
+        Kd = np.array([
+            [K[0][0]/2, 0, (K[0][2]+0.5)/2-0.5],
+            [0, K[1][1]/2, (K[1][2]+0.5)/2-0.5],
+            [0 ,0 ,1]])
+        Id = (I[0::2][0::2] +
+              I[1::2][0::2] +
+              I[0::2][1::2] +
+              I[1::2][1::2]) * 0.25
+        DdCountValid = (np.sign(D[0::2][0::2]) +
+                        np.sign(D[1::2][0::2]) +
+                        np.sign(D[0::2][1::2]) +
+                        np.sign(D[1::2][1::2]))
+        Dd = (D[0::2][0::2] +
+              D[1::2][0::2] +
+              D[0::2][1::2] +
+              D[1::2][1::2]
+        )
+        Dd = np.divide(Dd,DdCountValid)
+        Dd[np.isnan(Dd)] = 0
+        return downscale(Id,Dd,Kd,level - 1)
+
 
 
 def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
