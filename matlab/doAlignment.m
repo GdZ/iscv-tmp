@@ -1,10 +1,14 @@
 % first pair of input frames
 K = [517.3 0 318.6;	0 516.5 255.3; 0 0 1];
 %c2 = double(imreadbw('rgb/1305031102.175304_broken.png'));
-c2 = double(imreadbw('rgb/1305031102.175304.png'));
-c1 = double(imreadbw('rgb/1305031102.275326.png'));
-d2 = double(imread('depth/1305031102.160407.png'))/5000;
-d1 = double(imread('depth/1305031102.262886.png'))/5000;
+c2 = double(imreadbw('solution/data/rgb/1311868164.363181.png'));
+c1 = double(imreadbw('solution/data/rgb/1311868164.399026.png'));
+d2 = double(imread('solution/data/depth/1311868164.373557.png')) / 5000;
+d1 = double(imread('solution/data/depth/1311868164.407784.png')) / 5000;
+%c2 = double(imreadbw('rgb/1305031102.175304.png'));
+%c1 = double(imreadbw('rgb/1305031102.275326.png'));
+%d2 = double(imread('depth/1305031102.160407.png'))/5000;
+%d1 = double(imread('depth/1305031102.262886.png'))/5000;
 % result:
 % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
 

@@ -9,6 +9,7 @@ from scipy import interpolate
 
 
 def imreadbw(fname):
+    print(fname)
     return io.imread(fname, as_gray=True)
 
 
