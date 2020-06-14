@@ -36,8 +36,8 @@ def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     T = se3Exp(xi)
     R = T[:3, :3]
     t = T[:3, 4]
-    KInv = K**(-1)
-    RKInv = R * K**(-1)
+    KInv = K ** (-1)
+    RKInv = R * K ** (-1)
 
     xImg = np.zeros_like(IRef) - 10
     yImg = np.zeros_like(IRef) - 10
@@ -46,9 +46,9 @@ def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
 
     for x in np.arange(IRef.shape[1]):
         for y in np.arange(IRef.shape[0]):
-            p = DRef[y, x] * KInv * np.array([[x-1], [y-1], 1])
+            p = DRef[y, x] * KInv * np.array([[x - 1], [y - 1], 1])
             pTrans = R * p + t
-            if pTrans[2] > 0 and DRef[y,x] > 0:
+            if pTrans[2] > 0 and DRef[y, x] > 0:
                 pTransProj = K * pTrans
                 xImg[y, x] = pTransProj[0] / pTransProj[2]
                 yImg[y, x] = pTransProj[1] / pTransProj[2]
@@ -57,12 +57,11 @@ def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
 
     # ========= calculate actual derivative. ===============
     # 1.: calculate image derivatives, and interpolate at warped positions.
+    dxI, dyI = np.zeros_like(I), np.zeros_like(I)
 
     # % 2.: get warped 3d points (x', y', z').
 
     # % 3. Jacobian calculation
-
-
 
     return Jac, residual, weights
 
@@ -87,13 +86,13 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     T = se3Exp(xi)
     R = T[:3, :3]
     t = T[:3, 4]
-    KInv = K**(-1)
+    KInv = K ** (-1)
     xImg = np.zeros_like(IRef) - 10
     yImg = np.zeros_like(IRef) - 10
 
     for x in np.arange(IRef.shape[1]):
         for y in np.arange(IRef.shape[1]):
-            p = DRef[y, x] * KInv * np.array([[x-1], [y-1], [0]])
+            p = DRef[y, x] * KInv * np.array([[x - 1], [y - 1], [0]])
             pTrans = K * (R * p + t)
             if pTrans[2] > 0 and DRef[y, x] > 0:
                 xImg[y, x] = pTrans[0] / pTrans[2] + 1
@@ -105,7 +104,7 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         idx = np.abs(residuals) > norm_param
         weights[idx] = norm_param / np.abs(residuals[idx])
     else:
-        weights = 2. / (1. + residuals**2/norm_param**2)**2
+        weights = 2. / (1. + residuals ** 2 / norm_param ** 2) ** 2
 
     # plot residual
     # not implement
@@ -134,6 +133,52 @@ def downscale(I, D, K, level):
     return (Id, Dd, Kd)
 
 
+def alignment(rgbs, depths):
+    # % first pair of input frames
+    K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
+    # %c2 = double(imreadbw('rgb/1305031102.175304_broken.png'));
+    c2 = np.double(imreadbw('rgb/1305031102.175304.png'))
+    c1 = np.double(imreadbw('rgb/1305031102.275326.png'))
+    d2 = np.double(plt.imread('depth/1305031102.160407.png')) / 5000
+    d1 = np.double(plt.imread('depth/1305031102.262886.png')) / 5000
+    # % result:
+    # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
+    # % set to zero to use Geman-McClure norm
+    use_hubernorm = True
+    norm_param = 1e100
+    if use_hubernorm:
+        norm_param = 0.2
+    else:
+        norm_param = 0.2
+    norm_param = 1e100
+
+    # % initialization
+    xi = np.array([[0, 0, 0, 0, 0, 0]]).T
+
+    # % pyramid levels
+    for lvl in np.arange(5, 1, -1):
+        IRef, DRef, Klvl = downscale(c1, d2, K, lvl)
+        I, D = downscale(c2, d2, K, lvl)
+        # just do at most 20 steps
+        errLast = 1e10
+        for i in np.arange(10):
+            # % ENABLE ME FOR NUMERIC DERIVATIVES
+            Jac, residuals, weights = deriveResidualsNumeric(IRef,DRef,I,xi,Klvl, norm_param, use_hubernorm)
+            # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
+            notValid = np.isnan(np.sum(Jac, 2) + residuals)
+            residuals[notValid, :] = 0
+            Jac[notValid, :] = 0
+            weights[notValid, :] = 0
+        # % do Gauss-Newton step
+        upd = - (Jac.T * (np.matlib.repmat(weights, 1, 6) * Jac))**(-1) * Jac.T * (weights * residuals)
+        lastXi = xi
+        xi = se3Log(se3Exp(upd) * se3Exp(xi))
+        err = np.mean(residuals * residuals)
+        if err / errLast > .995:
+            break
+        errLast = err
+
+
 def se3Log(x):
     lg = logm(x)
     twist = np.array([lg[0, 3], lg[1, 3], lg[2, 3],
@@ -148,4 +193,3 @@ def se3Exp(x):
                   [0, 0, 0, 0]])
 
     return expm(M)
-

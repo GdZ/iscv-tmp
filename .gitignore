@@ -9,6 +9,7 @@ __pycache__/
 data/
 rgbd/
 *.tgz
+*.xml
 
 # no need to project
 github.xml

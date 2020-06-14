@@ -28,7 +28,7 @@ end
 norm_param = 1e100;
 
 % initialization
-xi = [0 0 0 0 0 0]'; # '
+xi = [0 0 0 0 0 0]';
 
 % pyramid levels
 for lvl = 5:-1:1
