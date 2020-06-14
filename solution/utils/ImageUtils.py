@@ -69,13 +69,20 @@ def downscale(I, D, K, level):
                         np.sign(D[1::2, 0::2]) +
                         np.sign(D[0::2, 1::2]) +
                         np.sign(D[1::2, 1::2]))
-        Dd = (D[0::2, 0::2] +
+        scaleD = (D[0::2, 0::2] +
               D[1::2, 0::2] +
               D[0::2, 1::2] +
               D[1::2, 1::2]
               )
-        Dd = np.divide(Dd, DdCountValid)
-        Dd[np.isnan(Dd)] = 0
+        # Dd = np.divide(Dd, DdCountValid)
+        # Dd[np.isnan(Dd)] = 0
+        index = np.arange(DdCountValid.flatten().shape[0])
+        ids = DdCountValid.flatten() != 0
+        Dd = np.zeros_like(DdCountValid.flatten())
+        Dd[index[ids]] = scaleD.flatten()[index[ids]] / DdCountValid.flatten()[index[ids]]
+        Dd[index[DdCountValid.flatten() == 0]] = 0
+        Dd = Dd.reshape(DdCountValid.shape)
+
         return downscale(Id, Dd, Kd, level - 1)
 
 
