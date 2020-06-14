@@ -4,11 +4,13 @@ from skimage import io
 from scipy.linalg import expm
 from scipy.linalg import logm
 from matplotlib import pyplot as plt
-from scipy.interpolate import interp2d
+# from scipy.interpolate import interp2d
+from scipy import interpolate
 
 
 def imreadbw(fname):
     return io.imread(fname, as_gray=True)
+
 
 """
 def downscale(I, D, K, level):
@@ -26,19 +28,28 @@ def downscale(I, D, K, level):
 
         xsI, ysI = I.shape
         idxI, idyI = np.arange(xsI, step=2), np.arange(ysI, step=2)
-        Id = (I[idxI, idyI] + I[1+idxI, idyI] + I[idxI, 1 + idyI] + I[1+idxI, 1+idyI])*.25
+        scaleI = I[idxI, :][:, idyI] + I[1 + idxI, :][:, idyI] + I[idxI, :][:, 1 + idyI] + I[1 + idxI, :][:, 1 + idyI]
+        Id = scaleI * .25
+
         xsD, ysD = D.shape
         idxD, idyD = np.arange(xsD, step=2), np.arange(ysD, step=2)
-        DdCountValid = np.sign(D[idxD, idyD]) + \
-                       np.sign(D[1 + idxD, idyD]) + \
-                       np.sign(D[idxD, 1+idyD]) + \
-                       np.sign(D[1+idxD, 1+idyD])
-        Dd = (D[idxD, idyD] + D[1 + idxD, idyD] + D[idxD, 1+idyD] + D[1+idxD, 1+idyD]) / DdCountValid
-        Dd[Dd.isna()] = 0
+        DdCountValid = np.sign(D[idxD, :][:, idyD]) + \
+                       np.sign(D[1 + idxD, :][:, idyD]) + \
+                       np.sign(D[idxD, :][:, 1 + idyD]) + \
+                       np.sign(D[1 + idxD, :][:, 1 + idyD])
+        index = np.arange(DdCountValid.flatten().shape[0])
+        ids = DdCountValid.flatten() != 0
+        scaleD = D[idxD, :][:, idyD] + D[1 + idxD, :][:, idyD] + D[idxD, :][:, 1 + idyD] + D[1 + idxD, :][:, 1 + idyD]
+        Dd = np.zeros_like(DdCountValid.flatten())
+        Dd[index[ids]] = scaleD.flatten()[index[ids]] / DdCountValid.flatten()[index[ids]]
+        Dd[index[DdCountValid.flatten() == 0]] = 0
+        Dd = Dd.reshape(DdCountValid.shape)
 
         Id, Dd, Kd = downscale(Id, Dd, Kd, level - 1)
     return Id, Dd, Kd
 """
+
+
 def downscale(I, D, K, level):
     if level < 1:
         Id = I
@@ -47,26 +58,25 @@ def downscale(I, D, K, level):
         return Id, Dd, Kd
     else:
         Kd = np.array([
-            [K[0][0]/2, 0, (K[0][2]+0.5)/2-0.5],
-            [0, K[1][1]/2, (K[1][2]+0.5)/2-0.5],
-            [0 ,0 ,1]])
-        Id = (I[0::2][0::2] +
-              I[1::2][0::2] +
-              I[0::2][1::2] +
-              I[1::2][1::2]) * 0.25
-        DdCountValid = (np.sign(D[0::2][0::2]) +
-                        np.sign(D[1::2][0::2]) +
-                        np.sign(D[0::2][1::2]) +
-                        np.sign(D[1::2][1::2]))
-        Dd = (D[0::2][0::2] +
-              D[1::2][0::2] +
-              D[0::2][1::2] +
-              D[1::2][1::2]
-        )
-        Dd = np.divide(Dd,DdCountValid)
+            [K[0][0] / 2, 0, (K[0][2] + 0.5) / 2 - 0.5],
+            [0, K[1][1] / 2, (K[1][2] + 0.5) / 2 - 0.5],
+            [0, 0, 1]])
+        Id = (I[0::2, 0::2] +
+              I[1::2, 0::2] +
+              I[0::2, 1::2] +
+              I[1::2, 1::2]) * 0.25
+        DdCountValid = (np.sign(D[0::2, 0::2]) +
+                        np.sign(D[1::2, 0::2]) +
+                        np.sign(D[0::2, 1::2]) +
+                        np.sign(D[1::2, 1::2]))
+        Dd = (D[0::2, 0::2] +
+              D[1::2, 0::2] +
+              D[0::2, 1::2] +
+              D[1::2, 1::2]
+              )
+        Dd = np.divide(Dd, DdCountValid)
         Dd[np.isnan(Dd)] = 0
-        return downscale(Id,Dd,Kd,level - 1)
-
+        return downscale(Id, Dd, Kd, level - 1)
 
 
 def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
@@ -105,9 +115,9 @@ def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
 
 
 def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
-    Jac, residual, weights = [], [], []
+    # Jac, residual, weights = [], [], []
     eps = 1e-6
-    Jac = np.zeros(I.shape, 6)
+    Jac = np.zeros(shape=(I.flatten().shape[0], 6))
     residuals, weights = calcResiduals(IRef, DRef, I, xi, K,
                                        norm_param, use_hubernorm)
     for j in np.arange(6):
@@ -123,20 +133,22 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     resdual, weights = [], []
     T = se3Exp(xi)
     R = T[:3, :3]
-    t = T[:3, 4]
-    KInv = K ** (-1)
+    t = T[:3, 3]
+    KInv = np.linalg.inv(K)
     xImg = np.zeros_like(IRef) - 10
     yImg = np.zeros_like(IRef) - 10
 
     for x in np.arange(IRef.shape[1]):
-        for y in np.arange(IRef.shape[1]):
-            p = DRef[y, x] * KInv * np.array([[x - 1], [y - 1], [0]])
-            pTrans = K * (R * p + t)
+        for y in np.arange(IRef.shape[0]):
+            p = np.dot(DRef[y, x] * KInv, np.array([[x - 1], [y - 1], [1]]))
+            pTrans = K.dot(R.dot(p) + t.reshape(p.shape))
             if pTrans[2] > 0 and DRef[y, x] > 0:
-                xImg[y, x] = pTrans[0] / pTrans[2] + 1
-                xImg[y, x] = pTrans[1] / pTrans[2] + 1
+                xImg[y, x] = pTrans[0] / pTrans[2] + 1.
+                xImg[y, x] = pTrans[1] / pTrans[2] + 1.
 
-    residuals = IRef - interp2d(I, xImg, yImg)
+    # residuals = IRef - interp2d(I, xImg, yImg)
+    residuals = IRef - interpolate.interp2d(I, np.real(xImg), np.real(yImg))
+
     weights = 0 * residuals + 1
     if use_hubernorm:
         idx = np.abs(residuals) > norm_param
@@ -151,24 +163,6 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     # not implement
 
     return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
-
-
-def downscale(I, D, K, level):
-    if level <= 1:
-        Id = I
-        Dd = D
-        Kd = K
-    else:
-        Kd = np.zeros(shape=(3, 3))
-        Kd[0, 0] = K[0, 0] / 2
-        Kd[0, 2] = (K[0, 2] + .5) / 2 - .5
-        Kd[1, 1] = K[1, 1] / 2
-        Kd[1, 2] = (K[1, 2] + .5) / 2 - .5
-        Kd[2, :] = [0, 0, 1]
-
-        # Id =
-
-    return (Id, Dd, Kd)
 
 
 def alignment(input_dir, rgbs, depths):
@@ -195,20 +189,20 @@ def alignment(input_dir, rgbs, depths):
 
     # % pyramid levels
     for lvl in np.arange(5, 1, -1):
-        IRef, DRef, Klvl = downscale(c1, d2, K, lvl)
-        I, D = downscale(c2, d2, K, lvl)
+        IRef, DRef, Klvl = downscale(c1, d1, K, lvl)
+        I, D, Kl = downscale(c2, d2, K, lvl)
         # just do at most 20 steps
         errLast = 1e10
         for i in np.arange(10):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
-            Jac, residuals, weights = deriveResidualsNumeric(IRef,DRef,I,xi,Klvl, norm_param, use_hubernorm)
+            Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
             # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
             notValid = np.isnan(np.sum(Jac, 2) + residuals)
             residuals[notValid, :] = 0
             Jac[notValid, :] = 0
             weights[notValid, :] = 0
         # % do Gauss-Newton step
-        upd = - (Jac.T * (np.matlib.repmat(weights, 1, 6) * Jac))**(-1) * Jac.T * (weights * residuals)
+        upd = - (Jac.T * (np.matlib.repmat(weights, 1, 6) * Jac)) ** (-1) * Jac.T * (weights * residuals)
         lastXi = xi
         xi = se3Log(se3Exp(upd) * se3Exp(xi))
         err = np.mean(residuals * residuals)
