@@ -36,16 +36,16 @@ make build
 
 1. rewrite matlab code to python
 
-    | task modules              | deadline   | status        |
-    | ------------------------- | ---------- | ------------- |
-    | `se3Log`                  | 14.06.2020 | *implemented* |
-    | `se3Exp`                  | 14.06.2020 | *implemented* |
-    | `imreadbw`                | 14.06.2020 | *implemented* |
-    | `calcResiduals`           | 14.06.2020 | *implemented* |
-    | `deriveResidualsAnalytic` | 14.06.2020 |               |
-    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
-    | `downscale`               | 14.06.2020 | **ongoing**   |
-    | `doAlignment`             | 14.06.2020 | *implemented* |
+    | task modules              | deadline   | status         |
+    | ------------------------- | ---------- | -------------- |
+    | `se3Log`                  | 14.06.2020 | *implemented*  |
+    | `se3Exp`                  | 14.06.2020 | *implemented*  |
+    | `imreadbw`                | 14.06.2020 | *implemented*  |
+    | `calcResiduals`           | 14.06.2020 | ***debuging*** |
+    | `deriveResidualsAnalytic` | 14.06.2020 | -              |
+    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented*  |
+    | `downscale`               | 14.06.2020 | *implemented*  |
+    | `doAlignment`             | 14.06.2020 | *implemented*  |
 
 2. every 9 frame as a key-frame
 
