@@ -72,10 +72,10 @@ def downscale(I, D, K, level):
                         np.sign(D[0::2, 1::2]) +
                         np.sign(D[1::2, 1::2]))
         scaleD = (D[0::2, 0::2] +
-              D[1::2, 0::2] +
-              D[0::2, 1::2] +
-              D[1::2, 1::2]
-              )
+                  D[1::2, 0::2] +
+                  D[0::2, 1::2] +
+                  D[1::2, 1::2]
+                  )
         # Dd = np.divide(Dd, DdCountValid)
         # Dd[np.isnan(Dd)] = 0
         index = np.arange(DdCountValid.flatten().shape[0])
@@ -133,7 +133,7 @@ def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         epsVec = np.zeros([6, 1])
         epsVec[j] = eps
         xiPerm = se3Log(se3Exp(epsVec) * se3Exp(xi))
-        r,w =calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm)
+        r, w = calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm)
         Jac[:, j] = (r - residuals) / eps
 
     return Jac, residuals, weights
@@ -157,7 +157,7 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
                 yImg[y, x] = pTrans[1] / pTrans[2] + 1.
 
     # residuals = IRef - interp2d(I, xImg, yImg)
-    f = interpolate.interp2d(np.real(xImg),np.real(yImg),I)
+    f = interpolate.interp2d(np.real(xImg), np.real(yImg), I)
     residuals = IRef - f(pTrans[0] / pTrans[2] + 1, pTrans[1] / pTrans[2] + 1)
 
     weights = 0 * residuals + 1
@@ -199,7 +199,7 @@ def alignment(input_dir, rgbs, depths):
     xi = np.array([[0, 0, 0, 0, 0, 0]]).T
 
     # % pyramid levels
-    for lvl in np.arange(5, 1, -1):
+    for i, lvl in enumerate(np.arange(5, 1, -1)):
         IRef, DRef, Klvl = downscale(c1, d1, K, lvl)
         I, D, Kl = downscale(c2, d2, K, lvl)
         # just do at most 20 steps
@@ -208,12 +208,16 @@ def alignment(input_dir, rgbs, depths):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
             # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
-            notValid = np.isnan(np.sum(Jac, axis = 1) + residuals)
+            notValid = np.isnan(np.sum(Jac, axis=1) + residuals)
             residuals[notValid] = 0
             Jac[notValid, :] = 0
             weights[notValid] = 0
         # % do Gauss-Newton step
-        upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T , np.multiply(np.matlib.repmat(weights, 6,1).T , Jac))) , Jac.T) , (weights * residuals))
+        # upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T, np.multiply(np.matlib.repmat(weights, 6, 1).T, Jac))), Jac.T),
+        #              (weights * residuals))
+        weights6 = np.matlib.repmat(weights.reshape(weights.flatten().size, 1), 1, 6)
+        pinv = -np.linalg.pinv(Jac.T.dot(np.multiply(weights6, Jac)))
+        upd = pinv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
         lastXi = xi
         xi = se3Log(se3Exp(upd) * se3Exp(xi))
         err = np.mean(residuals * residuals)
