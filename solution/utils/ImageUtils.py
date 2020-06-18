@@ -5,6 +5,7 @@ from scipy.linalg import expm
 from scipy.linalg import logm
 from matplotlib import pyplot as plt
 # from scipy.interpolate import interp2d
+import numpy.matlib
 from scipy import interpolate
 
 
@@ -129,10 +130,11 @@ def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     residuals, weights = calcResiduals(IRef, DRef, I, xi, K,
                                        norm_param, use_hubernorm)
     for j in np.arange(6):
-        epsVec = np.zeros(6, 1)
+        epsVec = np.zeros([6, 1])
         epsVec[j] = eps
         xiPerm = se3Log(se3Exp(epsVec) * se3Exp(xi))
-        Jac[:, j] = (calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm) - residuals) / eps
+        r,w =calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm)
+        Jac[:, j] = (r - residuals) / eps
 
     return Jac, residuals, weights
 
@@ -152,10 +154,11 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
             pTrans = K.dot(R.dot(p) + t.reshape(p.shape))
             if pTrans[2] > 0 and DRef[y, x] > 0:
                 xImg[y, x] = pTrans[0] / pTrans[2] + 1.
-                xImg[y, x] = pTrans[1] / pTrans[2] + 1.
+                yImg[y, x] = pTrans[1] / pTrans[2] + 1.
 
     # residuals = IRef - interp2d(I, xImg, yImg)
-    residuals = IRef - interpolate.interp2d(I, np.real(xImg), np.real(yImg))
+    f = interpolate.interp2d(np.real(xImg),np.real(yImg),I)
+    residuals = IRef - f(pTrans[0] / pTrans[2] + 1, pTrans[1] / pTrans[2] + 1)
 
     weights = 0 * residuals + 1
     if use_hubernorm:
@@ -205,12 +208,12 @@ def alignment(input_dir, rgbs, depths):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
             # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
-            notValid = np.isnan(np.sum(Jac, 2) + residuals)
-            residuals[notValid, :] = 0
+            notValid = np.isnan(np.sum(Jac, axis = 1) + residuals)
+            residuals[notValid] = 0
             Jac[notValid, :] = 0
-            weights[notValid, :] = 0
+            weights[notValid] = 0
         # % do Gauss-Newton step
-        upd = - (Jac.T * (np.matlib.repmat(weights, 1, 6) * Jac)) ** (-1) * Jac.T * (weights * residuals)
+        upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T , np.multiply(np.matlib.repmat(weights, 6,1).T , Jac))) , Jac.T) , (weights * residuals))
         lastXi = xi
         xi = se3Log(se3Exp(upd) * se3Exp(xi))
         err = np.mean(residuals * residuals)
