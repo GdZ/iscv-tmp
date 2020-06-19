@@ -168,10 +168,13 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         weights = 2. / (1. + residuals ** 2 / norm_param ** 2) ** 2
 
     # plot residual
-    # not implement
-
+    # plt.subplot(1, 2, 1)
+    # plt.imshow(residuals, cmap='gray')
     # plot weight
-    # not implement
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(weights, cmap='gray')
+    # plt.legend()
+    # plt.show()
 
     return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
 
@@ -212,6 +215,7 @@ def alignment(input_dir, rgbs, depths):
         # just do at most 20 steps
         errLast = 1e10
         vals = []
+        fig = plt.figure()
         for i in np.arange(10):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
@@ -220,6 +224,11 @@ def alignment(input_dir, rgbs, depths):
             residuals[notValid] = 0
             Jac[notValid, :] = 0
             weights[notValid] = 0
+            plt.subplot(1, 2, 1)
+            plt.imshow(residuals.reshape(IRef.shape), cmap='gray')
+            plt.subplot(1, 2, 2)
+            plt.imshow(weights.reshape(IRef.shape), cmap='gray')
+            plt.show()
             vals.append({'Jac': Jac, 'residuals': residuals, 'weights': weights})
         # % do Gauss-Newton step
         # upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T, np.multiply(np.matlib.repmat(weights, 6, 1).T, Jac))), Jac.T),
