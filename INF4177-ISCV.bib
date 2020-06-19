@@ -1,0 +1,53 @@
+
+@article{mur-artal_orb-slam2_2017,
+	title = {{ORB}-{SLAM2}: an {Open}-{Source} {SLAM} {System} for {Monocular}, {Stereo} and {RGB}-{D} {Cameras}},
+	volume = {33},
+	issn = {1552-3098, 1941-0468},
+	shorttitle = {{ORB}-{SLAM2}},
+	url = {http://arxiv.org/abs/1610.06475},
+	doi = {10.1109/TRO.2017.2705103},
+	abstract = {We present ORB-SLAM2 a complete SLAM system for monocular, stereo and RGB-D cameras, including map reuse, loop closing and relocalization capabilities. The system works in real-time on standard CPUs in a wide variety of environments from small hand-held indoors sequences, to drones flying in industrial environments and cars driving around a city. Our back-end based on bundle adjustment with monocular and stereo observations allows for accurate trajectory estimation with metric scale. Our system includes a lightweight localization mode that leverages visual odometry tracks for unmapped regions and matches to map points that allow for zero-drift localization. The evaluation on 29 popular public sequences shows that our method achieves state-of-the-art accuracy, being in most cases the most accurate SLAM solution. We publish the source code, not only for the benefit of the SLAM community, but with the aim of being an out-of-the-box SLAM solution for researchers in other fields.},
+	number = {5},
+	urldate = {2020-06-12},
+	journal = {IEEE Transactions on Robotics},
+	author = {Mur-Artal, Raul and Tardos, Juan D.},
+	month = oct,
+	year = {2017},
+	note = {arXiv: 1610.06475},
+	keywords = {Computer Science - Robotics, Computer Science - Computer Vision and Pattern Recognition},
+	pages = {1255--1262},
+	annote = {Comment: Accepted for publication in IEEE Transactions on Robotics
+https://github.com/raulmur/ORB\_SLAM2.git},
+	file = {arXiv Fulltext PDF:/home/zz/Zotero/storage/8HYDNEFF/Mur-Artal and Tardos - 2017 - ORB-SLAM2 an Open-Source SLAM System for Monocula.pdf:application/pdf}
+}
+
+@inproceedings{kerl_dense_2013,
+	title = {Dense visual {SLAM} for {RGB}-{D} cameras},
+	doi = {10.1109/IROS.2013.6696650},
+	abstract = {In this paper, we propose a dense visual SLAM method for RGB-D cameras that minimizes both the photometric and the depth error over all pixels. In contrast to sparse, feature-based methods, this allows us to better exploit the available information in the image data which leads to higher pose accuracy. Furthermore, we propose an entropy-based similarity measure for keyframe selection and loop closure detection. From all successful matches, we build up a graph that we optimize using the g2o framework. We evaluated our approach extensively on publicly available benchmark datasets, and found that it performs well in scenes with low texture as well as low structure. In direct comparison to several state-of-the-art methods, our approach yields a significantly lower trajectory error. We release our software as open-source.},
+	booktitle = {2013 {IEEE}/{RSJ} {International} {Conference} on {Intelligent} {Robots} and {Systems}},
+	author = {Kerl, Christian and Sturm, Jürgen and Cremers, Daniel},
+	month = nov,
+	year = {2013},
+	note = {ISSN: 2153-0866},
+	keywords = {cameras, Cameras, Covariance matrices, dense visual SLAM method, depth error minimization, entropy, Entropy, entropy-based similarity measure, g2o framework, graph, graph theory, image texture, keyframe selection, loop closure detection, open-source software, Optimization, photometric error minimization, photometry, RGB-D cameras, Simultaneous localization and mapping, SLAM (robots), Trajectory, Visualization},
+	pages = {2100--2106},
+	file = {IEEE Xplore Abstract Record:/home/zz/Zotero/storage/7UZRXT93/6696650.html:text/html;Submitted Version:/home/zz/Zotero/storage/9MKKLXYY/Kerl et al. - 2013 - Dense visual SLAM for RGB-D cameras.pdf:application/pdf}
+}
+
+@article{engel_direct_2018,
+	title = {Direct {Sparse} {Odometry}},
+	volume = {40},
+	issn = {1939-3539},
+	doi = {10.1109/TPAMI.2017.2658577},
+	abstract = {Direct Sparse Odometry (DSO) is a visual odometry method based on a novel, highly accurate sparse and direct structure and motion formulation. It combines a fully direct probabilistic model (minimizing a photometric error) with consistent, joint optimization of all model parameters, including geometry-represented as inverse depth in a reference frame-and camera motion. This is achieved in real time by omitting the smoothness prior used in other direct methods and instead sampling pixels evenly throughout the images. Since our method does not depend on keypoint detectors or descriptors, it can naturally sample pixels from across all image regions that have intensity gradient, including edges or smooth intensity variations on essentially featureless walls. The proposed model integrates a full photometric calibration, accounting for exposure time, lens vignetting, and non-linear response functions. We thoroughly evaluate our method on three different datasets comprising several hours of video. The experiments show that the presented approach significantly outperforms state-of-the-art direct and indirect methods in a variety of real-world settings, both in terms of tracking accuracy and robustness.},
+	number = {3},
+	journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+	author = {Engel, Jakob and Koltun, Vladlen and Cremers, Daniel},
+	month = mar,
+	year = {2018},
+	note = {Conference Name: IEEE Transactions on Pattern Analysis and Machine Intelligence},
+	keywords = {camera motion, Cameras, Computational modeling, consistent optimization, direct sparse odometry, distance measurement, fully direct probabilistic model, Geometry, image motion analysis, image sampling, joint optimization, motion formulation, optimisation, Optimization, probability, reference frame, Robustness, sample pixels, smooth intensity variations, Three-dimensional displays, visual odometry method, Visual odometry, SLAM, 3D reconstruction, structure from motion, Visualization},
+	pages = {611--625},
+	file = {IEEE Xplore Full Text PDF:/home/zz/Zotero/storage/DCPJV2IZ/Engel et al. - 2018 - Direct Sparse Odometry.pdf:application/pdf}
+}
