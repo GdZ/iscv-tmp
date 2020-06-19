@@ -198,12 +198,20 @@ def alignment(input_dir, rgbs, depths):
     # % initialization
     xi = np.array([[0, 0, 0, 0, 0, 0]]).T
 
+    irefs = []
+    drefs = []
+    kls = []
+    errors = []
     # % pyramid levels
     for i, lvl in enumerate(np.arange(5, 1, -1)):
         IRef, DRef, Klvl = downscale(c1, d1, K, lvl)
         I, D, Kl = downscale(c2, d2, K, lvl)
+        irefs.append([IRef, I])
+        drefs.append([DRef, D])
+        kls.append([Klvl, Kl])
         # just do at most 20 steps
         errLast = 1e10
+        vals = []
         for i in np.arange(10):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
@@ -212,18 +220,26 @@ def alignment(input_dir, rgbs, depths):
             residuals[notValid] = 0
             Jac[notValid, :] = 0
             weights[notValid] = 0
+            vals.append({'Jac': Jac, 'residuals': residuals, 'weights': weights})
         # % do Gauss-Newton step
         # upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T, np.multiply(np.matlib.repmat(weights, 6, 1).T, Jac))), Jac.T),
         #              (weights * residuals))
         weights6 = np.matlib.repmat(weights.reshape(weights.flatten().size, 1), 1, 6)
-        pinv = -np.linalg.pinv(Jac.T.dot(np.multiply(weights6, Jac)))
-        upd = pinv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
+        mat = Jac.T.dot(np.multiply(weights6, Jac))
+        if np.linalg.det(mat) != 0:
+            inv = - np.linalg.inv(mat)
+        else:
+            inv = -np.linalg.pinv(mat)
+        upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
         lastXi = xi
         xi = se3Log(se3Exp(upd) * se3Exp(xi))
         err = np.mean(residuals * residuals)
         if err / errLast > .995:
             break
         errLast = err
+        errors.append({'err': err, 'vals': vals})
+    np.save({'irefs': irefs, 'drefs': drefs, 'kls': kls, 'errors': errors})
+    return irefs, drefs, kls, errors
 
 
 def se3Log(x):

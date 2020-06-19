@@ -41,7 +41,7 @@ def main(argv):
     print(timestamp.shape, rgb.shape, depth.shape)
     fname = '{}/{}'.format(input_dir, rgb[0])
     print(fname)
-    show(fname)
+    # show(fname)
     alignment(input_dir, rgbs=rgb, depths=depth)
 
 
