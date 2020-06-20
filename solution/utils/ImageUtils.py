@@ -4,7 +4,7 @@ from skimage import io
 from scipy.linalg import expm
 from scipy.linalg import logm
 from matplotlib import pyplot as plt
-# from scipy.interpolate import interp2d
+from scipy.interpolate import interp2d
 import numpy.matlib
 from scipy import interpolate
 
@@ -53,7 +53,7 @@ def downscale(I, D, K, level):
 
 
 def downscale(I, D, K, level):
-    if level < 1:
+    if level <= 1:
         Id = I
         Dd = D
         Kd = K
@@ -157,9 +157,13 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
                 yImg[y, x] = pTrans[1] / pTrans[2] + 1.
 
     # residuals = IRef - interp2d(I, xImg, yImg)
-    f = interpolate.interp2d(np.real(xImg), np.real(yImg), I)
-    residuals = IRef - f(pTrans[0] / pTrans[2] + 1, pTrans[1] / pTrans[2] + 1)
-
+    f = interp2d(xImg,yImg,I)
+    xnew = list(range(xImg.shape[1]))
+    ynew = list(range(yImg.shape[0]))
+    Inew = f(xnew, ynew)
+    residuals = IRef - Inew
+    residuals[xImg == -10] = np.inf
+    #  print(residuals)
     weights = 0 * residuals + 1
     if use_hubernorm:
         idx = np.abs(residuals) > norm_param
@@ -168,13 +172,13 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         weights = 2. / (1. + residuals ** 2 / norm_param ** 2) ** 2
 
     # plot residual
-    # plt.subplot(1, 2, 1)
-    # plt.imshow(residuals, cmap='gray')
+    # not implement
+    plt.imshow(residuals,cmap='Greys')
+    plt.imshow(weights,cmap = 'Greys')
+    plt.show()
+
     # plot weight
-    # plt.subplot(1, 2, 2)
-    # plt.imshow(weights, cmap='gray')
-    # plt.legend()
-    # plt.show()
+    # not implement
 
     return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
 
@@ -215,7 +219,6 @@ def alignment(input_dir, rgbs, depths):
         # just do at most 20 steps
         errLast = 1e10
         vals = []
-        fig = plt.figure()
         for i in np.arange(10):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
@@ -224,15 +227,9 @@ def alignment(input_dir, rgbs, depths):
             residuals[notValid] = 0
             Jac[notValid, :] = 0
             weights[notValid] = 0
-            plt.subplot(1, 2, 1)
-            plt.imshow(residuals.reshape(IRef.shape), cmap='gray')
-            plt.subplot(1, 2, 2)
-            plt.imshow(weights.reshape(IRef.shape), cmap='gray')
-            plt.show()
             vals.append({'Jac': Jac, 'residuals': residuals, 'weights': weights})
         # % do Gauss-Newton step
-        # upd = np.dot(np.dot(- np.linalg.inv(np.dot(Jac.T, np.multiply(np.matlib.repmat(weights, 6, 1).T, Jac))), Jac.T),
-        #              (weights * residuals))
+
         weights6 = np.matlib.repmat(weights.reshape(weights.flatten().size, 1), 1, 6)
         mat = Jac.T.dot(np.multiply(weights6, Jac))
         if np.linalg.det(mat) != 0:
@@ -247,7 +244,7 @@ def alignment(input_dir, rgbs, depths):
             break
         errLast = err
         errors.append({'err': err, 'vals': vals})
-    np.save({'irefs': irefs, 'drefs': drefs, 'kls': kls, 'errors': errors})
+ #   np.save({'irefs': irefs, 'drefs': drefs, 'kls': kls, 'errors': errors})
     return irefs, drefs, kls, errors
 
 
