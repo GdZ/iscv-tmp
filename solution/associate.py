@@ -90,8 +90,8 @@ def associate(first_list, second_list, offset, max_difference):
     matches -- list of matched tuples ((stamp1,data1),(stamp2,data2))
 
     """
-    first_keys = first_list.keys()
-    second_keys = second_list.keys()
+    first_keys = list(first_list.keys())
+    second_keys = list(second_list.keys())
     potential_matches = [(abs(a - (b + offset)), a, b)
                          for a in first_keys
                          for b in second_keys
@@ -124,6 +124,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     first_list = read_file_list(args.first_file)
+    print(first_list)
     second_list = read_file_list(args.second_file)
 
     matches = associate(first_list, second_list, float(args.offset), float(args.max_difference))
