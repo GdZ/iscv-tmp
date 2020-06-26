@@ -14,44 +14,6 @@ def imreadbw(fname):
     return io.imread(fname, as_gray=True)
 
 
-"""
-def downscale(I, D, K, level):
-    if level <= 1:
-        Id = I
-        Dd = D
-        Kd = K
-    else:
-        Kd = np.zeros(shape=(3, 3))
-        Kd[0, 0] = K[0, 0] / 2
-        Kd[0, 2] = (K[0, 2] + .5) / 2 - .5
-        Kd[1, 1] = K[1, 1] / 2
-        Kd[1, 2] = (K[1, 2] + .5) / 2 - .5
-        Kd[2, :] = [0, 0, 1]
-
-        xsI, ysI = I.shape
-        idxI, idyI = np.arange(xsI, step=2), np.arange(ysI, step=2)
-        scaleI = I[idxI, :][:, idyI] + I[1 + idxI, :][:, idyI] + I[idxI, :][:, 1 + idyI] + I[1 + idxI, :][:, 1 + idyI]
-        Id = scaleI * .25
-
-        xsD, ysD = D.shape
-        idxD, idyD = np.arange(xsD, step=2), np.arange(ysD, step=2)
-        DdCountValid = np.sign(D[idxD, :][:, idyD]) + \
-                       np.sign(D[1 + idxD, :][:, idyD]) + \
-                       np.sign(D[idxD, :][:, 1 + idyD]) + \
-                       np.sign(D[1 + idxD, :][:, 1 + idyD])
-        index = np.arange(DdCountValid.flatten().shape[0])
-        ids = DdCountValid.flatten() != 0
-        scaleD = D[idxD, :][:, idyD] + D[1 + idxD, :][:, idyD] + D[idxD, :][:, 1 + idyD] + D[1 + idxD, :][:, 1 + idyD]
-        Dd = np.zeros_like(DdCountValid.flatten())
-        Dd[index[ids]] = scaleD.flatten()[index[ids]] / DdCountValid.flatten()[index[ids]]
-        Dd[index[DdCountValid.flatten() == 0]] = 0
-        Dd = Dd.reshape(DdCountValid.shape)
-
-        Id, Dd, Kd = downscale(Id, Dd, Kd, level - 1)
-    return Id, Dd, Kd
-"""
-
-
 def downscale(I, D, K, level):
     if level <= 1:
         Id = I
