@@ -40,7 +40,8 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     ynew = list(range(yImg.shape[0]))
     Inew = f(xnew, ynew)
     residuals = IRef - Inew
-    residuals[xImg == -10] = np.inf
+    # residuals[xImg == -10] = np.max(residuals)*1.2
+    residuals[xImg == -10] = np.nan
     #  print(residuals)
 
     weights = 0 * residuals + 1

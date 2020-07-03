@@ -1,4 +1,6 @@
 import numpy as np
+from numpy import matlib
+from scipy.linalg import cho_factor, cho_solve
 from utils.ImageUtils import downscale
 from utils.deriveResiduals import deriveResidualsNumeric
 from utils.se3 import se3Exp
@@ -10,9 +12,9 @@ def do_alignment(c1, d1, c2, d2, K):
     norm_param = 1e100
     if use_hubernorm:
         norm_param = 0.2
-    # else:
-    #     norm_param = 0.2
-    #     norm_param = 1e100
+    else:
+        norm_param = 0.2
+    norm_param = 1e100
 
     # % set to zero to use Geman-McClure norm
     # % the initialization of pose
@@ -24,7 +26,7 @@ def do_alignment(c1, d1, c2, d2, K):
     result = []
 
     # % pyramid levels
-    for i, lvl in enumerate(np.arange(5, 1, -1)):
+    for i, lvl in enumerate(np.arange(5, 4, -1)):
         IRef, DRef, Klvl = downscale(c1, d1, K, lvl)
         I, D, Kl = downscale(c2, d2, K, lvl)
         irefs.append([IRef, I])
@@ -45,21 +47,24 @@ def do_alignment(c1, d1, c2, d2, K):
             vals.append({'Jac': Jac, 'residuals': residuals, 'weights': weights})
 
             # % do Gauss-Newton step
-            weights6 = np.matlib.repmat(weights.reshape(weights.flatten().size, 1), 1, 6)
+            weights6 = matlib.repmat(weights.reshape(weights.flatten().size, 1), 1, 6)
             mat = Jac.T.dot(np.multiply(weights6, Jac))
             if np.linalg.det(mat) != 0:
-                inv = - np.linalg.inv(mat)
+                c, low = cho_factor(mat)
+                inv = - cho_solve((c, low), np.eye(mat.shape[0]))
+                # inv = - np.linalg(mat)
             else:
                 inv = -np.linalg.pinv(mat)
-            upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
+            # upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
+            upd = inv.dot(Jac.T).dot(np.multiply(np.ones_like(weights), residuals).reshape(weights.flatten().size, 1))
 
             lastXi = xi
-            xi = se3Log(se3Exp(upd) * se3Exp(xi))
+            xi = se3Log(se3Exp(upd) @ se3Exp(xi))
             err = np.mean(residuals * residuals)
             if err / errLast > .995:
                 break
             errLast = err
             print('xi: {}\nerr: {}'.format(xi, err))
-            result.append({'xi': xi, 'err': err, 'vals': vals})
+            # result.append({'xi': xi, 'err': err, 'vals': vals})
 
     return result
