@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 # self defined function
 from utils.dataset import load_data
 from utils.ImageUtils import imreadbw
-from utils.ImageUtils import alignment
+from utils.alignment import do_alignment
 
 
 def main(argv):
@@ -43,6 +43,30 @@ def main(argv):
     print(fname)
     # show(fname)
     alignment(input_dir, timestamp, rgbs=rgb, depths=depth)
+
+
+def alignment(input_dir, timestamps, rgbs, depths):
+    # Reference from website of vision tum
+    K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+
+    step = 9
+    results = []
+    for i in np.arange(1, len(rgbs), step):
+        c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[1])))
+        d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[2]))) / 5000
+        # c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[i])))
+        # d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[i]))) / 5000
+        for j in np.arange(1, step):
+            c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[0])))
+            d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[1]))) / 5000
+            # c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[i + j])))
+            # d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[i + j]))) / 5000
+            # % result:
+            # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
+            results.append({'timestamp': timestamps[i], 'result': do_alignment(c1, d1, c2, d2, K)})
+            break
+        break
+    results = np.asarray(results)
 
 
 def show(fname):
