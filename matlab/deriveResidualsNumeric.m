@@ -3,7 +3,7 @@ function [ Jac, residual, weights ] = deriveResidualsNumeric( IRef, DRef, I, xi,
 
     eps = 1e-6;
     Jac = zeros(size(I,1) * size(I,2),6);
-    [ residual, weights ] = calcResiduals(IRef,DRef,I,xi,K, norm_param, use_hubernorm);
+    [residual, weights ] = calcResiduals(IRef,DRef,I,xi,K, norm_param, use_hubernorm);
 
     for j=1:6
         epsVec = zeros(6,1);

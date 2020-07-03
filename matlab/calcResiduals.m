@@ -19,10 +19,9 @@ for x=1:size(IRef,2)
         % point in reference image. note that the pixel-coordinates of the
         % point (1,1) are actually (0,0).
         p = DRef(y,x) * KInv * [x-1;y-1;1];
-
         % transform to image (unproject, rotate & translate)
         pTrans = K * (R * p + t);
-
+   
         % if point is valid (depth > 0), project and save result.
         if(pTrans(3) > 0 && DRef(y,x) > 0)
             xImg(y,x) = pTrans(1) / pTrans(3) + 1;
@@ -35,9 +34,11 @@ end
 residuals = IRef - interp2(I, real(xImg), real(yImg));
 
 weights = 0 * residuals + 1;
+
 if use_hubernorm
     idx = find( abs(residuals) > norm_param );
     weights( idx ) = norm_param / abs(residuals( idx ));
+    sum(weights(~isnan(weights)))
 else
     weights = 2. ./ ( 1. + residuals.^2 / norm_param^2 ).^2;
 end

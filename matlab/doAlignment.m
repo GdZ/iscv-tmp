@@ -36,7 +36,6 @@ xi = [0 0 0 0 0 0]';
 
 % pyramid levels
 for lvl = 5:-1:1
-    lvl
 
     % get downscaled image, depth image, and K-matrix of down-scaled image.
     [IRef, DRef, Klvl] = downscale(c1,d1,K,lvl);
@@ -49,6 +48,7 @@ for lvl = 5:-1:1
 
         % calculate Jacobian of residual function (Matrix of dim (width*height) x 6)
         [Jac, residual, weights] = deriveResidualsNumeric(IRef,DRef,I,xi,Klvl, norm_param, use_hubernorm);   % ENABLE ME FOR NUMERIC DERIVATIVES
+        
         %[Jac, residual, weights] = deriveResidualsAnalytic(IRef,DRef,I,xi,Klvl, norm_param, use_hubernorm);   % ENABLE ME FOR ANALYTIC DERIVATIVES
         axis equal
 
@@ -59,15 +59,16 @@ for lvl = 5:-1:1
         weights(notValid,:) = 0;
 
         % do Gauss-Newton step
+        size(Jac' * (repmat( weights, 1, 6 ) .* Jac))
+        size(repmat( weights, 1, 6 ))
         upd = - (Jac' * (repmat( weights, 1, 6 ) .* Jac))^-1 * Jac' * (weights .* residual);
-
+        
         % multiply increment from left onto the current estimate
         lastXi = xi;
         xi = se3Log(se3Exp(upd) * se3Exp(xi));
-        xi'
 
         % get mean and display
-        err = mean(residual .* residual)
+        err = mean(residual .* residual);
 
         if(err / errLast > 0.995)
             break;
@@ -76,3 +77,4 @@ for lvl = 5:-1:1
         errLast = err;
     end
 end
+
