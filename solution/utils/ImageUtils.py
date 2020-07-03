@@ -119,12 +119,12 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
                 yImg[y, x] = pTrans[1] / pTrans[2] + 1.
 
     # residuals = IRef - interp2d(I, xImg, yImg)
-    f = interp2d(xImg,yImg,I)
+    f = interp2d(xImg, yImg, I)
     xnew = list(range(xImg.shape[1]))
     ynew = list(range(yImg.shape[0]))
     Inew = f(xnew, ynew)
     residuals = IRef - Inew
-    residuals[xImg == -10] = np.inf
+    residuals[xImg == -10] = np.max(residuals) * 1.2
     #  print(residuals)
     weights = 0 * residuals + 1
     if use_hubernorm:
@@ -135,36 +135,52 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
 
     # plot residual
     # not implement
-    plt.imshow(residuals,cmap='Greys')
-    plt.imshow(weights,cmap = 'Greys')
+    plt.subplot(1, 2, 1)
+    plt.imshow(residuals, cmap='Greys')
+    plt.xlabel('residuals')
+    plt.subplot(1, 2, 2)
+    plt.imshow(weights, cmap='Greys')
+    plt.xlabel('weights')
     plt.show()
-
-    # plot weight
-    # not implement
 
     return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
 
 
-def alignment(input_dir, rgbs, depths):
-    # % first pair of input frames
-    K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
-    # %c2 = double(imreadbw('rgb/1305031102.175304_broken.png'));
-    c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[0])))
-    c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[1])))
-    d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[0]))) / 5000
-    d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[1]))) / 5000
-    # % result:
-    # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
-    # % set to zero to use Geman-McClure norm
+def alignment(input_dir, timestamps, rgbs, depths):
+    # Reference from website of vision tum
+    K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+
+    step = 9
+    results = []
+    for i in np.arange(1, len(rgbs), step):
+        c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[1])))
+        d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[2]))) / 5000
+        # c1 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[i])))
+        # d1 = np.double(imreadbw('{}/{}'.format(input_dir, depths[i]))) / 5000
+        for j in np.arange(1, step):
+            c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[0])))
+            d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[1]))) / 5000
+            # c2 = np.double(imreadbw('{}/{}'.format(input_dir, rgbs[i + j])))
+            # d2 = np.double(imreadbw('{}/{}'.format(input_dir, depths[i + j]))) / 5000
+            # % result:
+            # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
+            results.append({'timestamp': timestamps[i], 'result': do_alignment(c1, d1, c2, d2, K)})
+            break
+        break
+    results = np.asarray(results)
+
+
+def do_alignment(c1, d1, c2, d2, K):
     use_hubernorm = True
     norm_param = 1e100
     if use_hubernorm:
         norm_param = 0.2
-    else:
-        norm_param = 0.2
-    norm_param = 1e100
+    # else:
+    #     norm_param = 0.2
+    #     norm_param = 1e100
 
-    # % initialization
+    # % set to zero to use Geman-McClure norm
+    # % the initialization of pose
     xi = np.array([[0, 0, 0, 0, 0, 0]]).T
 
     irefs = []
@@ -178,6 +194,7 @@ def alignment(input_dir, rgbs, depths):
         irefs.append([IRef, I])
         drefs.append([DRef, D])
         kls.append([Klvl, Kl])
+
         # just do at most 20 steps
         errLast = 1e10
         vals = []
@@ -199,6 +216,7 @@ def alignment(input_dir, rgbs, depths):
         else:
             inv = -np.linalg.pinv(mat)
         upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
+
         lastXi = xi
         xi = se3Log(se3Exp(upd) * se3Exp(xi))
         err = np.mean(residuals * residuals)
@@ -206,8 +224,10 @@ def alignment(input_dir, rgbs, depths):
             break
         errLast = err
         errors.append({'err': err, 'vals': vals})
- #   np.save({'irefs': irefs, 'drefs': drefs, 'kls': kls, 'errors': errors})
-    return irefs, drefs, kls, errors
+        # np.save({'irefs': irefs, 'drefs': drefs, 'kls': kls, 'errors': errors})
+
+    # return irefs, drefs, kls, errors
+    return xi
 
 
 def se3Log(x):

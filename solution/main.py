@@ -42,7 +42,7 @@ def main(argv):
     fname = '{}/{}'.format(input_dir, rgb[0])
     print(fname)
     # show(fname)
-    alignment(input_dir, rgbs=rgb, depths=depth)
+    alignment(input_dir, timestamp, rgbs=rgb, depths=depth)
 
 
 def show(fname):

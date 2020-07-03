@@ -6,12 +6,18 @@ build:
 env:
 	python3 -m pip install -r requirements.txt
 
+evaluate: evaluate_rpe evaluate_ate
+
+
 associate:
-	solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
+	python solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
+
 evaluate_ate:
-	solution/evaluate_ate.py 'solution/data/goundtruth.txt' > solution/data/evaluate_ate.txt
+	python solution/evaluate_ate.py 'solution/data/groundtruth.txt' 'solution/data/evaluate_ate.txt'
+
 evaluate_rpe:
-	solution/evaluate_rpe.py 'solution/data/groundtruth.txt' > solution/data/evaluate_rpe.txt
+	python solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/evaluate_rpe.txt'
+
 download:
 	mkdir -p solution
 	#axel -an 10 https://vision.in.tum.de/rgbd/dataset/freiburg2/rgbd_dataset_freiburg2_desk.tgz
