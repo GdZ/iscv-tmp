@@ -43,8 +43,8 @@ def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     # Jac, residual, weights = [], [], []
     eps = 1e-6
     Jac = np.zeros(shape=(I.flatten().shape[0], 6))
-    residuals, weights = calcResiduals(IRef, DRef, I, xi, K,
-                                       norm_param, use_hubernorm)
+    residuals, weights = calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm)
+
     for j in np.arange(6):
         epsVec = np.zeros([6, 1])
         epsVec[j] = eps

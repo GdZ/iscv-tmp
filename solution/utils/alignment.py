@@ -37,6 +37,7 @@ def do_alignment(c1, d1, c2, d2, K):
         errLast = 1e10
         vals = []
         for i in np.arange(10):
+            print('i: {}'.format(i))
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residuals, weights = deriveResidualsNumeric(IRef, DRef, I, xi, Klvl, norm_param, use_hubernorm)
             # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
@@ -55,12 +56,13 @@ def do_alignment(c1, d1, c2, d2, K):
                 # inv = - np.linalg(mat)
             else:
                 inv = -np.linalg.pinv(mat)
-            # upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
-            upd = inv.dot(Jac.T).dot(np.multiply(np.ones_like(weights), residuals).reshape(weights.flatten().size, 1))
+            upd = inv.dot(Jac.T).dot(np.multiply(weights, residuals).reshape(weights.flatten().size, 1))
+            # upd = inv.dot(Jac.T).dot(np.multiply(np.ones_like(weights), residuals).reshape(weights.flatten().size, 1))
 
             lastXi = xi
             xi = se3Log(se3Exp(upd) @ se3Exp(xi))
             err = np.mean(residuals * residuals)
+            print('upd: {}, xi: {}, err: {}'.format(upd, xi, err))
             if err / errLast > .995:
                 break
             errLast = err
