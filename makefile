@@ -10,10 +10,10 @@ associate:
 	solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
 
 evaluate_ate:
-	solution/evaluate_ate.py 'solution/data/goundtruth.txt' > solution/data/evaluate_ate.txt
+	solution/evaluate_ate.py 'solution/data/goundtruth.txt' > solution/data/estimate.txt
 
 evaluate_rpe:
-	solution/evaluate_rpe.py 'solution/data/groundtruth.txt' > solution/data/evaluate_rpe.txt
+	solution/evaluate_rpe.py 'solution/data/groundtruth.txt' > solution/data/estimate.txt
 
 download:
 	mkdir -p solution

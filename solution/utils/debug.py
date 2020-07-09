@@ -6,18 +6,18 @@ DEBUG = False
 
 
 # function
-def is_debug():
+def isDebug():
     return DEBUG
 # end
 
 
 def logW(msg):
-    if is_debug():
+    if isDebug():
         print('{:.06f} [warning] {}'.format(time.time(), msg))
 
 
 def logD(msg):
-    if is_debug():
+    if isDebug():
         print('{:.06f} [debug] {}'.format(time.time(), msg))
 
 

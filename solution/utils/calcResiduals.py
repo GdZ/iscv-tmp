@@ -1,43 +1,42 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from utils.se3 import se3Exp
-from utils.interpolate import bilinear_interpolate
-from utils.debug import is_debug
+from utils.interpolate import interp2d
+from utils.debug import isDebug
 
 
-def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
+def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     # get shorthands (R, t)
     T = se3Exp(xi)
     R = T[:3, :3]
     t = T[:3, 3]
 
-    KInv = np.linalg.inv(K)
+    k_inv = np.linalg.inv(k)
 
     # these contain the x,y image coordinates of the respective
     # reference-pixel, transformed & projected into the new image.
     # set to -10 initially, as this will give NaN on interpolation later.
-    xImg = np.zeros_like(IRef) - 10
-    yImg = np.zeros_like(IRef) - 10
-    Inew = np.zeros_like(IRef)
+    x_img = np.zeros_like(ref_img) - 10
+    y_img = np.zeros_like(ref_img) - 10
+    interp_img = np.zeros_like(ref_img)
 
-    for x in np.arange(IRef.shape[1]):
-        for y in np.arange(IRef.shape[0]):
+    for x in np.arange(ref_img.shape[1]):
+        for y in np.arange(ref_img.shape[0]):
             # point in reference image. note that the pixel-coordinates of the
             # point (1,1) are actually (0,0).
-            p = np.dot(DRef[y, x] * KInv, np.array([[x], [y], [1]]))
+            p = np.dot(ref_depth[y, x] * k_inv, np.array([[x], [y], [1]]))
 
             # transform to image (unproject, rotate & translate)
-            pTrans = K.dot(R.dot(p) + t.reshape(p.shape))
+            pTrans = k.dot(R.dot(p) + t.reshape(p.shape))
 
             # if point is valid (depth > 0), project and save result.
-            if pTrans[2] > 0 and DRef[y, x] > 0:
-                xImg[y, x] = pTrans[0] / pTrans[2]
-                yImg[y, x] = pTrans[1] / pTrans[2]
+            if pTrans[2] > 0 and ref_depth[y, x] > 0:
+                x_img[y, x] = pTrans[0] / pTrans[2]
+                y_img[y, x] = pTrans[1] / pTrans[2]
 
-            # calculate actual residual (as matrix).
-            Inew[y, x] = bilinear_interpolate(I, xImg[y, x], yImg[y, x])
-
-    residuals = IRef - Inew
+    # calculate actual residual (as matrix).
+    interp_img = interp2d(img, x_img, y_img)
+    residuals = ref_img - interp_img
 
     weights = 0 * residuals + 1
     if use_hubernorm:
@@ -47,7 +46,7 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         weights = 2. / (1. + residuals ** 2 / norm_param ** 2) ** 2
 
     # plot residual
-    if is_debug():
+    if isDebug():
         # fig = plt.figure(figsize=(12, 12))
         plt.subplot(1, 2, 1)
         plt.imshow(residuals, cmap='Greys')
@@ -57,4 +56,4 @@ def calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         plt.xlabel('weights')
         plt.show()
 
-    return residuals.reshape(I.flatten().shape), weights.reshape(I.flatten().shape)
+    return residuals.flatten(), weights.flatten()

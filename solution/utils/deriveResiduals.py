@@ -4,33 +4,33 @@ from utils.se3 import se3Exp
 from utils.se3 import se3Log
 
 
-def deriveResidualsAnalytic(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
+def deriveResidualsAnalytic(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     Jac, residual, weights = [], [], []
     T = se3Exp(xi)
     R = T[:3, :3]
     t = T[:3, 4]
-    KInv = K ** (-1)
-    RKInv = R * K ** (-1)
+    k_inv = k ** (-1)
+    rk_inv = R * k ** (-1)
 
-    xImg = np.zeros_like(IRef) - 10
-    yImg = np.zeros_like(IRef) - 10
-    xp, yp, zp = np.zeros_like(IRef), np.zeros_like(IRef), np.zeros_like(IRef)
-    wxp, wyp, wzp = np.zeros_like(IRef), np.zeros_like(IRef), np.zeros_like(IRef)
+    x_img = np.zeros_like(ref_img) - 10
+    y_img = np.zeros_like(ref_img) - 10
+    xp, yp, zp = np.zeros_like(ref_img), np.zeros_like(ref_img), np.zeros_like(ref_img)
+    wxp, wyp, wzp = np.zeros_like(ref_img), np.zeros_like(ref_img), np.zeros_like(ref_img)
 
-    for x in np.arange(IRef.shape[1]):
-        for y in np.arange(IRef.shape[0]):
-            p = DRef[y, x] * KInv * np.array([[x - 1], [y - 1], 1])
-            pTrans = R * p + t
-            if pTrans[2] > 0 and DRef[y, x] > 0:
-                pTransProj = K * pTrans
-                xImg[y, x] = pTransProj[0] / pTransProj[2]
-                yImg[y, x] = pTransProj[1] / pTransProj[2]
+    for x in np.arange(ref_img.shape[1]):
+        for y in np.arange(ref_img.shape[0]):
+            p = ref_depth[y, x] * k_inv * np.array([[x - 1], [y - 1], 1])
+            p_trans = R * p + t
+            if p_trans[2] > 0 and ref_depth[y, x] > 0:
+                p_trans_projection = k * p_trans
+                x_img[y, x] = p_trans_projection[0] / p_trans_projection[2]
+                y_img[y, x] = p_trans_projection[1] / p_trans_projection[2]
                 xp, yp, zp = p
-                wxp, wyp, wzp = pTrans
+                wxp, wyp, wzp = p_trans
 
     # ========= calculate actual derivative. ===============
     # 1.: calculate image derivatives, and interpolate at warped positions.
-    dxI, dyI = np.zeros_like(I), np.zeros_like(I)
+    dxI, dyI = np.zeros_like(img), np.zeros_like(img)
 
     # % 2.: get warped 3d points (x', y', z').
 
