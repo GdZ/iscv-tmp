@@ -10,27 +10,45 @@
 
 1. download dataset
 
-```shell
-make download
-```
+    ```shell
+    make download
+    ```
 
 2. configuration of python environment 
 
-```shell
-make env
-```
+    ```shell
+    make env
+    ```
 
 3. combination between depth and rgb
 
-```shell
-make associate
-```
+    ```shell
+    make associate
+    ```
 
 4. build project
 
-```shell
-make build
-```
+    ```shell
+    make build
+    ```
+
+5. evaluate_rpe
+
+    ```
+    make evaluation_rpe
+    ```
+
+6. evaluate_ate
+
+    ```shell
+    make evaluate_ate
+    ```
+
+7. evaluate
+
+    ```shell
+    make evaluate
+    ```
 
 ## calibration
 
@@ -47,16 +65,16 @@ make build
 
 1. rewrite matlab code to python
 
-    | task modules              | deadline   | status         |
-    | ------------------------- | ---------- | -------------- |
-    | `se3Log`                  | 14.06.2020 | *implemented*  |
-    | `se3Exp`                  | 14.06.2020 | *implemented*  |
-    | `imreadbw`                | 14.06.2020 | *implemented*  |
-    | `calcResiduals`           | 14.06.2020 | ***debuging*** |
-    | `deriveResidualsAnalytic` | 14.06.2020 | -              |
-    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented*  |
-    | `downscale`               | 14.06.2020 | *implemented*  |
-    | `doAlignment`             | 14.06.2020 | *implemented*  |
+    | task modules              | deadline   | status        |
+    | ------------------------- | ---------- | ------------- |
+    | `se3Log`                  | 14.06.2020 | *implemented* |
+    | `se3Exp`                  | 14.06.2020 | *implemented* |
+    | `imreadbw`                | 14.06.2020 | *implemented* |
+    | `calcResiduals`           | 14.06.2020 | *implemented* |
+    | `deriveResidualsAnalytic` | 14.06.2020 | -             |
+    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
+    | `downscale`               | 14.06.2020 | *implemented* |
+    | `doAlignment`             | 14.06.2020 | *implemented* |
 
 2. Implement keyframe-based camera tracking through direct image alignment.
 
