@@ -304,6 +304,7 @@ def percentile(seq,q):
     seq_sorted.sort()
     return seq_sorted[int((len(seq_sorted)-1)*q)]
 
+
 if __name__ == '__main__':
     random.seed(0)
 

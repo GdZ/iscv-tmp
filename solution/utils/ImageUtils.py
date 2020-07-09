@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from skimage import io
-# from scipy.linalg import expm
-# from scipy.linalg import logm
-# from matplotlib import pyplot as plt
-# from scipy.interpolate import interp2d
-# import numpy.matlib
-# from scipy import interpolate
+from utils.debug import logD
 
 
 def imreadbw(fname):
-    print(fname)
+    logD(fname)
     return io.imread(fname, as_gray=True)
 
 
@@ -20,6 +15,7 @@ def downscale(I, D, K, level):
         Dd = D
         Kd = K
         return Id, Dd, Kd
+
     else:
         Kd = np.array([
             [K[0][0] / 2, 0, (K[0][2] + 0.5) / 2 - 0.5],
@@ -38,8 +34,10 @@ def downscale(I, D, K, level):
                   D[0::2, 1::2] +
                   D[1::2, 1::2]
                   )
+
         # Dd = np.divide(Dd, DdCountValid)
         # Dd[np.isnan(Dd)] = 0
+
         index = np.arange(DdCountValid.flatten().shape[0])
         ids = DdCountValid.flatten() != 0
         Dd = np.zeros_like(DdCountValid.flatten())
