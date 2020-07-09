@@ -1,19 +1,22 @@
 all: download env associate build
 
 build:
-	python solution/main.py --input-dir 'solution/data' --output-dir 'solution/output'
+	python3 solution/main.py --input-dir 'solution/data' --output-dir 'solution/output'
 
 env:
 	python3 -m pip install -r requirements.txt
 
 associate:
-	solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
+	python3 solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
+
+evaluate:
+	python3 solution/evaluate_ate.py 'solution/data/freiburg2_desk-rgbdslam.txt' 'solution/data/estimate.txt'
 
 evaluate_ate:
-	solution/evaluate_ate.py 'solution/data/goundtruth.txt' > solution/data/estimate.txt
+	python3 solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/freiburg2_desk-rgbdslam.txt'
 
 evaluate_rpe:
-	solution/evaluate_rpe.py 'solution/data/groundtruth.txt' > solution/data/estimate.txt
+	python3 solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/freiburg2_desk-rgbdslam.txt'
 
 download:
 	mkdir -p solution
