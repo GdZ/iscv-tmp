@@ -27,7 +27,8 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
     weights = []
 
     # % pyramid levels
-    for i, scaled_level in enumerate(np.arange(5, 4, -1)):
+    upper, lower, delta = 5, 4, -1
+    for i, scaled_level in enumerate(np.arange(upper, lower, delta)):
         scaled_ref_img, scaled_ref_depth, scaled_rk = downscale(ref_img, ref_depth, k, scaled_level)
         scaled_img, scaled_depth, scaled_k = downscale(t_img, t_depth, k, scaled_level)
 

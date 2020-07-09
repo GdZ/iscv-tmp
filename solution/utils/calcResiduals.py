@@ -47,7 +47,7 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
 
     # plot residual
     if isDebug():
-        # fig = plt.figure(figsize=(12, 12))
+        # fig = plt.figure(figsize=(12, 6))
         plt.subplot(1, 2, 1)
         plt.imshow(residuals, cmap='Greys')
         plt.xlabel('residuals')

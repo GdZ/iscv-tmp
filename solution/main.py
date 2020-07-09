@@ -46,10 +46,20 @@ def main(argv):
 
 
 def alignment(input_dir, timestamps, rgbs, depths):
-    step = 9
-    results = []
+    buffer = []
 
-    for i in np.arange(0, len(rgbs), step):
+
+    start, step = 0, 9
+    for i in np.arange(start, len(rgbs), step):
+        results = []
+        if i == 0:
+            # write the head of the estimate.txt
+            with open('data/estimate.txt', "w") as f:
+                f.write('# timestamp tx ty tz qx qy qz qw\n')
+            f.close()
+            tmp = [timestamps[i], 0, 0, 0, 0, 0, 0, 1]
+            results.append(['%-.06f' % x for x in tmp])
+
         if isDebug():
             # parameter just for testing, which is copy from matlab
             K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
@@ -64,6 +74,11 @@ def alignment(input_dir, timestamps, rgbs, depths):
             logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
             xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
             logD('timestamp: {}, error: {}, xi: {}'.format(timestamps[i], errors[-1], xis[-1]))
+            result = np.zeros(8)
+            result[0] = 1311868164.399026
+            result[1:7] = xis[-1]
+            results.append(['%-.06f' % x for x in result])
+            break
 
         else:
             # actual parameter, which is copy from visiom.tum
@@ -81,20 +96,22 @@ def alignment(input_dir, timestamps, rgbs, depths):
                 result = np.zeros(8)
                 result[0] = timestamps[j]
                 result[1:7] = xis[-1]
-                results.append(['%-.04f' % x for x in result])
+                results.append(['%-.06f' % x for x in result])
 
+        # save result to 'data/estimate.txt'
+        csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
+        csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
         # just compute first group
         # break
-    # save result to 'data/estimate.txt'
-    csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
-    csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ')
 
 
 def show(fname):
     im = imReadByGray(file_path=fname)
     plt.imshow(im, cmap='gray')
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
     main(sys.argv[1:])
+    plt.show()
+    print('finished....')
