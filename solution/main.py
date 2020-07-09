@@ -73,11 +73,11 @@ def alignment(input_dir, timestamps, rgbs, depths):
             logD('c1.shape = ({}), d1.shape = ({})'.format(c1.shape, d1.shape))
 
             # each 'step'-frame image depend on the 0-frame
-            for j in np.arange(i+1, step):
+            for j in np.arange(i+1, i+step):
                 c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
                 d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
                 xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
-                logV('timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(timestamps[j], errors[-1], xis[-1]))
+                logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, timestamps[j], errors[-1], xis[-1]))
                 result = np.zeros(8)
                 result[0] = timestamps[j]
                 result[1:7] = xis[-1]
@@ -85,6 +85,7 @@ def alignment(input_dir, timestamps, rgbs, depths):
 
         # just compute first group
         # break
+    # save result to 'data/estimate.txt'
     csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
     csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ')
 

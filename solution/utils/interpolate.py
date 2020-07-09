@@ -14,17 +14,19 @@ def interp2d(o, idx, idy):
     idx_arr = np.asarray(idx)
     idy_arr = np.asarray(idy)
     o_arr = np.asarray(o)
+    # get bounding
+    r, c = np.array(o_arr.shape) - 1
 
     # here must use floor to get approximation
-    idx0 = np.floor(idx_arr).astype(np.int)
-    idx1 = idx0 + 1
-    idy0 = np.floor(idy_arr).astype(np.int)
-    idy1 = idy0 + 1
-
-    r, c = np.array(o_arr.shape) - 1
+    # idx0 = np.floor(idx_arr).astype(np.int)
+    idx0 = np.ceil(idx_arr - 1).astype(np.int)
     clip_idx0 = np.clip(idx0, 0, c)
+    idx1 = clip_idx0 + 1
     clip_idx1 = np.clip(idx1, 0, c)
+
+    idy0 = np.ceil(idy_arr - 1).astype(np.int)
     clip_idy0 = np.clip(idy0, 0, r)
+    idy1 = clip_idy0 + 1
     clip_idy1 = np.clip(idy1, 0, r)
 
     Ia = o_arr[clip_idy0, clip_idx0]

@@ -27,12 +27,12 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
             p = np.dot(ref_depth[y, x] * k_inv, np.array([[x], [y], [1]]))
 
             # transform to image (unproject, rotate & translate)
-            pTrans = k.dot(R.dot(p) + t.reshape(p.shape))
+            p_trans = k.dot(R.dot(p) + t.reshape(p.shape))
 
             # if point is valid (depth > 0), project and save result.
-            if pTrans[2] > 0 and ref_depth[y, x] > 0:
-                x_img[y, x] = pTrans[0] / pTrans[2]
-                y_img[y, x] = pTrans[1] / pTrans[2]
+            if p_trans[2] > 0 and ref_depth[y, x] > 0:
+                x_img[y, x] = p_trans[0] / p_trans[2]
+                y_img[y, x] = p_trans[1] / p_trans[2]
 
     # calculate actual residual (as matrix).
     interp_img = interp2d(img, x_img, y_img)
