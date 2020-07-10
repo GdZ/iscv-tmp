@@ -6,7 +6,7 @@ from utils.debug import logV
 
 
 def imReadByGray(file_path):
-    logV(file_path)
+    logD(file_path)
     return io.imread(file_path, as_gray=True)
 
 
