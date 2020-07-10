@@ -59,15 +59,23 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             with open('data/estimate.txt', "w") as f:
                 f.write('# timestamp tx ty tz qx qy qz qw\n')
             f.close()
+            with open('data/delta_x.csv', 'w') as f:
+                f.write('\n')
+            f.close()
+            #
             tmp = [t1[i], 0, 0, 0, 0, 0, 0, 1]
             results.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
+
+        if i == start:
             pw = np.array([0, 0, 0, 1])
             last_pose = pw
 
         if isDebug():
             # parameter just for testing, which is copy from matlab
-            K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
+            # [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+            k_rgb = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
+            k_depth = np.array([1.035])  # ds
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.399026.png')))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'depth/1311868164.407784.png'))) / 5000
             c2 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.363181.png')))
@@ -77,34 +85,37 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             # % result:
             # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
             logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
-            xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
+            xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=k_rgb)
             logD('timestamp: {}, error: {}, xi: {}'.format(t1[i], errors[-1], xis[-1]))
             T = se3Exp(xis[-1])
             result = np.zeros(8)
             result[0] = 1311868164.399026
-            pose_t = xis[-1][:3]
-            pose_w = se3Exp(xis[-1]) @ pw
+            pose_t = T[:3, 3]
+            pose_w = T @ pw
             result[1:4], result[4:8] = pose_t, pose_w
             results.append(['%-.06f' % x for x in result])
             break
 
         else:
             # actual parameter, which is copy from visiom.tum
-            K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+            # [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+            distortion_rgb = np.array([0.2312, -0.7849, -0.0033, -0.0001, 0.9172])
+            k_rgb = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+            k_depth = np.array([1.031])  # ds
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
             logD('c1.shape = ({}), d1.shape = ({})'.format(c1.shape, d1.shape))
 
             # each 'step'-frame image depend on the 0-frame
             for j in np.arange(i+1, i+step):
-                c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
-                d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
-                xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
+                c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[j])))
+                d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[j]))) / 5000
+                xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=k_rgb)
                 logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
                 T = se3Exp(xis[-1])
                 result = np.zeros(8)
                 result[0] = t1[j]
-                pose_t = xis[-1][:3]
+                pose_t = T[:3, 3]
                 pose_w = se3Exp(xis[-1]) @ last_pose
                 last_pose = pose_w
                 result[1:4], result[4:8] = pose_t, pose_w

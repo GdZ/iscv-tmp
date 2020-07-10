@@ -54,6 +54,6 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
         plt.subplot(1, 2, 2)
         plt.imshow(weights, cmap='Greys')
         plt.xlabel('weights')
-        plt.show()
+        # plt.show()
 
     return residuals.flatten(), weights.flatten()
