@@ -40,12 +40,12 @@ def main(argv):
         os.mkdir(output_dir)
 
     # load depth, rgb timestamp
-    timestamp, rgb, depth = loadData(input_dir)
-    logD('timestamp: {}, rgb: {}, depth: {}'.format(timestamp.shape, rgb.shape, depth.shape))
-    alignment(input_dir, timestamp, rgbs=rgb, depths=depth)
+    timestamp_rgb, rgb, timestamp_depth, depth = loadData(input_dir)
+    logD('timestamp: {}, rgb: {}, depth: {}'.format(timestamp_rgb.shape, rgb.shape, depth.shape))
+    alignment(input_dir, t1=timestamp_rgb, rgbs=rgb, t2=timestamp_depth, depths=depth)
 
 
-def alignment(input_dir, timestamps, rgbs, depths):
+def alignment(input_dir, t1, rgbs, t2, depths):
     buffer = []
 
 
@@ -57,7 +57,7 @@ def alignment(input_dir, timestamps, rgbs, depths):
             with open('data/estimate.txt', "w") as f:
                 f.write('# timestamp tx ty tz qx qy qz qw\n')
             f.close()
-            tmp = [timestamps[i], 0, 0, 0, 0, 0, 0, 1]
+            tmp = [t1[i], 0, 0, 0, 0, 0, 0, 1]
             results.append(['%-.06f' % x for x in tmp])
 
         if isDebug():
@@ -73,7 +73,7 @@ def alignment(input_dir, timestamps, rgbs, depths):
             # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
             logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
             xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
-            logD('timestamp: {}, error: {}, xi: {}'.format(timestamps[i], errors[-1], xis[-1]))
+            logD('timestamp: {}, error: {}, xi: {}'.format(t1[i], errors[-1], xis[-1]))
             result = np.zeros(8)
             result[0] = 1311868164.399026
             result[1:7] = xis[-1]
@@ -92,9 +92,9 @@ def alignment(input_dir, timestamps, rgbs, depths):
                 c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
                 d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
                 xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
-                logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, timestamps[j], errors[-1], xis[-1]))
+                logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
                 result = np.zeros(8)
-                result[0] = timestamps[j]
+                result[0] = t1[j]
                 result[1:7] = xis[-1]
                 results.append(['%-.06f' % x for x in result])
 

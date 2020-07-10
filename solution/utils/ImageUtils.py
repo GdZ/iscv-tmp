@@ -2,10 +2,11 @@
 import numpy as np
 from skimage import io
 from utils.debug import logD
+from utils.debug import logV
 
 
 def imReadByGray(file_path):
-    logD(file_path)
+    logV(file_path)
     return io.imread(file_path, as_gray=True)
 
 
