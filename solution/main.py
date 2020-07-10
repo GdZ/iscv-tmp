@@ -51,7 +51,8 @@ def alignment(input_dir, t1, rgbs, t2, depths):
 
 
     start, step = 0, 9
-    for i in np.arange(start, len(rgbs), step):
+    # for i in np.arange(start, len(rgbs), step):
+    for i in np.arange(start, len(rgbs)):
         results = []
         xi_arr = []
         if i == 0:
@@ -63,7 +64,10 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             results.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
             pw = np.array([0, 0, 0, 1])
-            last_pose = pw
+            last_keyframe_pose = np.identity(4)
+            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
+            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+            ckf, dkf = c1, d1
 
         if isDebug():
             # parameter just for testing, which is copy from matlab
@@ -91,29 +95,53 @@ def alignment(input_dir, t1, rgbs, t2, depths):
         else:
             # actual parameter, which is copy from visiom.tum
             K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
-            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
-            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-            logD('c1.shape = ({}), d1.shape = ({})'.format(c1.shape, d1.shape))
+            # compute the reference frame with the keyframe
+            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
+            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+            xis, errors = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+            xi = xis[-1]
+            # compute relative transform matrix
+            from scipy.linalg import inv
+            Tinv = inv(se3Exp(xi))   # just make sure current frame to keyframe
+            if i % step == 0:
+                # here just choose the keyframe
+                last_keyframe_pose = last_keyframe_pose @ Tinv
+                ckf, dkf = c2, d2
+            current_frame_pose = last_keyframe_pose @ Tinv
+            R = current_frame_pose[:3, :3]  # rotation matrix
+            t = current_frame_pose[:3, 3]  # t
+            from scipy.spatial.transform import Rotation as Rfunc
+            q = Rfunc.from_matrix(R)
+            result = np.zeros(8)
+            result[0] = t1[i]
+            pose_t, pose_w = t, q.as_quat()
+            result[1:4], result[4:8] = pose_t, pose_w
+            results.append(['%-.08f' % x for x in result])
 
             # each 'step'-frame image depend on the 0-frame
-            for j in np.arange(i+1, i+step):
-                c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
-                d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
-                xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
-                logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
-                T = se3Exp(xis[-1])
-                result = np.zeros(8)
-                result[0] = t1[j]
-                pose_t = xis[-1][:3]
-                pose_w = se3Exp(xis[-1]) @ last_pose
-                last_pose = pose_w
-                result[1:4], result[4:8] = pose_t, pose_w
-                results.append(['%-.06f' % x for x in result])
-                xi_arr.append(xis[-1])
+            # for j in np.arange(i+1, i+step):
+            #     c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
+            #     d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
+            #     xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
+            #     logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
+            #     from scipy.linalg import inv
+            #     # from scipy.linalg import det
+            #     T = se3Exp(xis[-1])  # relative trans
+            #     Tinv = inv(T)
+            #     Tw = se3Exp(xi_arr[i-step])  # transform the current keyframe under the the very first keyframe
+            #     result = np.zeros(8)
+            #     result[0] = t1[j]
+            #     from scipy.linalg import inv
+            #     pose_t = xis[-1][:3]  # pose t
+            #     pose_w = Tw @ Tinv @ last_keyframe_pose  # computed new world frame
+            #     last_keyframe_pose = pose_w
+            #     result[1:4], result[4:8] = pose_t, pose_w
+            #     results.append(['%-.06f' % x for x in result])
+            #     xi_arr.append(xis[-1])
 
         # save result to 'data/estimate.txt'
-        delta_x = pd.DataFrame(np.asarray(xi_arr))
-        delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
+        # delta_x = pd.DataFrame(np.asarray(xi_arr))
+        # delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
         csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
         csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
         # just compute first group
