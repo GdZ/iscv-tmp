@@ -6,6 +6,8 @@ import argparse
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.spatial.transform import Rotation as Rfunc
+from scipy.linalg import inv
 
 # self defined function
 from utils.dataset import loadData
@@ -49,20 +51,24 @@ def main(argv):
 def alignment(input_dir, t1, rgbs, t2, depths):
     buffer = []
 
-
     start, step = 0, 9
-    # for i in np.arange(start, len(rgbs), step):
+    results = []
     for i in np.arange(start, len(rgbs)):
-        results = []
         xi_arr = []
         if i == 0:
             # write the head of the estimate.txt
             with open('data/estimate.txt', "w") as f:
                 f.write('# timestamp tx ty tz qx qy qz qw\n')
             f.close()
+            with open('data/delta_x.csv', 'w') as f:
+                f.write('\n')
+            f.close()
+            #
             tmp = [t1[i], 0, 0, 0, 0, 0, 0, 1]
             results.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
+
+        if i == start:
             pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
@@ -71,7 +77,9 @@ def alignment(input_dir, t1, rgbs, t2, depths):
 
         if isDebug():
             # parameter just for testing, which is copy from matlab
-            K = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
+            # [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
+            k_rgb = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
+            k_depth = np.array([1.035])  # ds
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.399026.png')))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'depth/1311868164.407784.png'))) / 5000
             c2 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.363181.png')))
@@ -81,13 +89,13 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             # % result:
             # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
             logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
-            xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
+            xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=k_rgb)
             logD('timestamp: {}, error: {}, xi: {}'.format(t1[i], errors[-1], xis[-1]))
             T = se3Exp(xis[-1])
             result = np.zeros(8)
             result[0] = 1311868164.399026
-            pose_t = xis[-1][:3]
-            pose_w = se3Exp(xis[-1]) @ pw
+            pose_t = T[:3, 3]
+            pose_w = T @ pw
             result[1:4], result[4:8] = pose_t, pose_w
             results.append(['%-.06f' % x for x in result])
             break
@@ -101,7 +109,6 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             xis, errors = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
             xi = xis[-1]
             # compute relative transform matrix
-            from scipy.linalg import inv
             Tinv = inv(se3Exp(xi))   # just make sure current frame to keyframe
             if i % step == 0:
                 # here just choose the keyframe
@@ -110,42 +117,22 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             current_frame_pose = last_keyframe_pose @ Tinv
             R = current_frame_pose[:3, :3]  # rotation matrix
             t = current_frame_pose[:3, 3]  # t
-            from scipy.spatial.transform import Rotation as Rfunc
             q = Rfunc.from_matrix(R)
             result = np.zeros(8)
             result[0] = t1[i]
             pose_t, pose_w = t, q.as_quat()
             result[1:4], result[4:8] = pose_t, pose_w
             results.append(['%-.08f' % x for x in result])
-
-            # each 'step'-frame image depend on the 0-frame
-            # for j in np.arange(i+1, i+step):
-            #     c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i + j])))
-            #     d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
-            #     xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
-            #     logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
-            #     from scipy.linalg import inv
-            #     # from scipy.linalg import det
-            #     T = se3Exp(xis[-1])  # relative trans
-            #     Tinv = inv(T)
-            #     Tw = se3Exp(xi_arr[i-step])  # transform the current keyframe under the the very first keyframe
-            #     result = np.zeros(8)
-            #     result[0] = t1[j]
-            #     from scipy.linalg import inv
-            #     pose_t = xis[-1][:3]  # pose t
-            #     pose_w = Tw @ Tinv @ last_keyframe_pose  # computed new world frame
-            #     last_keyframe_pose = pose_w
-            #     result[1:4], result[4:8] = pose_t, pose_w
-            #     results.append(['%-.06f' % x for x in result])
-            #     xi_arr.append(xis[-1])
+            logV('{:04d} -> {}'.format(i+1, ['%-.08f' % x for x in result]))
 
         # save result to 'data/estimate.txt'
-        # delta_x = pd.DataFrame(np.asarray(xi_arr))
-        # delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
-        csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
-        csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
-        # just compute first group
-        # break
+        if i % step == 0:
+            results = np.asarray(results)
+            delta_x = pd.DataFrame(np.asarray(xi_arr))
+            delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
+            csv = pd.DataFrame(results, columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
+            csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
+            results = []
 
 
 def show(fname):
