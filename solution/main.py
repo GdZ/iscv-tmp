@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from utils.dataset import loadData
 from utils.ImageUtils import imReadByGray
 from utils.alignment import doAlignment
+from utils.se3 import se3Exp
 from utils.debug import isDebug
 from utils.debug import logD
 from utils.debug import logV
@@ -52,6 +53,7 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     start, step = 0, 9
     for i in np.arange(start, len(rgbs), step):
         results = []
+        xi_arr = []
         if i == 0:
             # write the head of the estimate.txt
             with open('data/estimate.txt', "w") as f:
@@ -59,6 +61,9 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             f.close()
             tmp = [t1[i], 0, 0, 0, 0, 0, 0, 1]
             results.append(['%-.06f' % x for x in tmp])
+            # world-frame initial pose
+            pw = np.array([0, 0, 0, 1])
+            last_pose = pw
 
         if isDebug():
             # parameter just for testing, which is copy from matlab
@@ -74,9 +79,12 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
             xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
             logD('timestamp: {}, error: {}, xi: {}'.format(t1[i], errors[-1], xis[-1]))
+            T = se3Exp(xis[-1])
             result = np.zeros(8)
             result[0] = 1311868164.399026
-            result[1:7] = xis[-1]
+            pose_t = xis[-1][:3]
+            pose_w = se3Exp(xis[-1]) @ pw
+            result[1:4], result[4:8] = pose_t, pose_w
             results.append(['%-.06f' % x for x in result])
             break
 
@@ -93,12 +101,19 @@ def alignment(input_dir, t1, rgbs, t2, depths):
                 d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i + j]))) / 5000
                 xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=K)
                 logV('{:04d} timestamp: {:.07f}, error: {:.08f}, xi: {}'.format(j, t1[j], errors[-1], xis[-1]))
+                T = se3Exp(xis[-1])
                 result = np.zeros(8)
                 result[0] = t1[j]
-                result[1:7] = xis[-1]
+                pose_t = xis[-1][:3]
+                pose_w = se3Exp(xis[-1]) @ last_pose
+                last_pose = pose_w
+                result[1:4], result[4:8] = pose_t, pose_w
                 results.append(['%-.06f' % x for x in result])
+                xi_arr.append(xis[-1])
 
         # save result to 'data/estimate.txt'
+        delta_x = pd.DataFrame(np.asarray(xi_arr))
+        delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
         csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
         csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
         # just compute first group
