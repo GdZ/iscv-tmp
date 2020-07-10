@@ -10,10 +10,10 @@ associate:
 	python2 solution/associate.py 'solution/data/rgb.txt' 'solution/data/depth.txt' > solution/data/rgbd.txt
 
 evaluate:
-	python2 solution/evaluate_rpe.py 'solution/data/freiburg2_desk-rgbdslam.txt' 'solution/data/estimate.txt'
+	python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/data/estimate.txt  --plot solution/output/figure-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
 
 evaluate_ate:
-	python2 solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/freiburg2_desk-rgbdslam.txt'
+	python2 solution/evaluate_ate_v2.py solution/data/freiburg2_desk-rgbdslam.txt solution/data/estimate.txt  --plot solution/output/figure-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
 
 evaluate_rpe:
 	python2 solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/freiburg2_desk-rgbdslam.txt'

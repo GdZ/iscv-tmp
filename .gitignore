@@ -10,6 +10,7 @@ data/
 rgbd/
 *.tgz
 *.xml
+output/
 
 # no need to project
 github.xml

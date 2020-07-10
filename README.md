@@ -65,58 +65,50 @@
 
 1. rewrite matlab code to python
 
-    | task modules              | deadline   | status        |
-    | ------------------------- | ---------- | ------------- |
-    | `se3Log`                  | 14.06.2020 | *implemented* |
-    | `se3Exp`                  | 14.06.2020 | *implemented* |
-    | `imreadbw`                | 14.06.2020 | *implemented* |
-    | `calcResiduals`           | 14.06.2020 | *implemented* |
-    | `deriveResidualsAnalytic` | 14.06.2020 | -             |
-    | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
-    | `downscale`               | 14.06.2020 | *implemented* |
-    | `doAlignment`             | 14.06.2020 | *implemented* |
+    | No   | task modules              | deadline   | status        |
+    | ---- | ------------------------- | ---------- | ------------- |
+    | 1.1  | `se3Log`                  | 14.06.2020 | *implemented* |
+    | 1.2  | `se3Exp`                  | 14.06.2020 | *implemented* |
+    | 1.3  | `imreadbw`                | 14.06.2020 | *implemented* |
+    | 1.4  | `calcResiduals`           | 14.06.2020 | *implemented* |
+    | 1.5  | `deriveResidualsAnalytic` | 14.06.2020 | -             |
+    | 1.6  | `deriveResidualsNumeric`  | 14.06.2020 | *implemented* |
+    | 1.7  | `downscale`               | 14.06.2020 | *implemented* |
+    | 1.8  | `doAlignment`             | 14.06.2020 | *implemented* |
 
 2. Implement keyframe-based camera tracking through direct image alignment.
 
-    | task modules                                                 | deadline | status        |
-    | ------------------------------------------------------------ | -------- | ------------- |
-    | process the RGB-D images only up to a downsampled size in the image pyramid | -        | *implemented* |
-    | Choose thresholds on the rotational and translational distance to create new keyframes, when the image overlap gets too small for camera tracking |          |               |
-    | Implement the relative entropy measure to decide when to create new keyframes |          |               |
-    | Implement pose-graph optimization for the keyframe poses using the Gauss-Newton algorithm and left-multiplied increments on the poses. |          |               |
-    |                                                              |          |               |
-    |                                                              |          |               |
-    |                                                              |          |               |
-    |                                                              |          |               |
+    | No   | task modules                                                 | deadline | status        |
+    | ---- | ------------------------------------------------------------ | -------- | ------------- |
+    | 2.1  | process the RGB-D images only up to a downsampled size in the image pyramid | -        | *implemented* |
+    | 2.2  | Choose thresholds on the rotational and translational distance to create new keyframes, when the image overlap gets too small for camera tracking |          | *implemented* |
+    | 2.3  | Implement the relative entropy measure to decide when to create new keyframes |          |               |
+    | 2.4  | Implement pose-graph optimization for the keyframe poses using the Gauss-Newton algorithm and left-multiplied increments on the poses. |          |               |
+    
+    The sample of `2.2` is bellow:
+    
+    ![2.2](solution/output/figure-20200710.205151.png)
+
+
 
 
 3. optimal key-frame
-   
-    | task modules | deadline | status |
-    | ------------ | -------- | ------ |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
 
+    | No   | task modules | deadline | status |
+    | ---- | ------------ | -------- | ------ |
+    | 3.1  |              |          |        |
+    | 3.2  |              |          |        |
+    | 3.3  |              |          |        |
+    | 3.4  |              |          |        |
+    
 4. second party
    
-    | task modules | deadline | status |
-    | ------------ | -------- | ------ |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
-    |              |          |        |
+    | No   | task modules | deadline | status |
+    | ---- | ------------ | -------- | ------ |
+    | 4.1  |              |          |        |
+    | 4.2  |              |          |        |
+    | 4.3  |              |          |        |
+    | 4.4  |              |          |        |
 
 
 5. pending
