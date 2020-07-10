@@ -87,7 +87,7 @@
     
     The sample of `2.2` is bellow:
     
-    ![2.2](solution/output/figure-20200710.205151.png)
+    ![2.2](solution/output/figure-20200710.210909.png)
 
 
 
