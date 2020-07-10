@@ -75,55 +75,30 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
             ckf, dkf = c1, d1
 
-        if isDebug():
-            # parameter just for testing, which is copy from matlab
-            # [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]
-            k_rgb = np.array([[517.3, 0, 318.6], [0, 516.5, 255.3], [0, 0, 1]])
-            k_depth = np.array([1.035])  # ds
-            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.399026.png')))
-            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, 'depth/1311868164.407784.png'))) / 5000
-            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, 'rgb/1311868164.363181.png')))
-            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, 'depth/1311868164.373557.png'))) / 5000
-            logD('c1.shape = ({}), d1.shape = ({})'.format(c1.shape, d1.shape))
-
-            # % result:
-            # % approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004
-            logD('approximately  -0.0018    0.0065    0.0369   -0.0287   -0.0184   -0.0004')
-            xis, errors = doAlignment(ref_img=c1, ref_depth=d1, t_img=c2, t_depth=d2, k=k_rgb)
-            logD('timestamp: {}, error: {}, xi: {}'.format(t1[i], errors[-1], xis[-1]))
-            T = se3Exp(xis[-1])
-            result = np.zeros(8)
-            result[0] = 1311868164.399026
-            pose_t = T[:3, 3]
-            pose_w = T @ pw
-            result[1:4], result[4:8] = pose_t, pose_w
-            results.append(['%-.06f' % x for x in result])
-            break
-
-        else:
-            # actual parameter, which is copy from visiom.tum
-            K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
-            # compute the reference frame with the keyframe
-            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
-            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-            xis, errors = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
-            xi = xis[-1]
-            # compute relative transform matrix
-            Tinv = inv(se3Exp(xi))   # just make sure current frame to keyframe
-            if i % step == 0:
-                # here just choose the keyframe
-                last_keyframe_pose = last_keyframe_pose @ Tinv
-                ckf, dkf = c2, d2
-            current_frame_pose = last_keyframe_pose @ Tinv
-            R = current_frame_pose[:3, :3]  # rotation matrix
-            t = current_frame_pose[:3, 3]  # t
-            q = Rfunc.from_matrix(R)
-            result = np.zeros(8)
-            result[0] = t1[i]
-            pose_t, pose_w = t, q.as_quat()
-            result[1:4], result[4:8] = pose_t, pose_w
-            results.append(['%-.08f' % x for x in result])
-            logV('{:04d} -> {}'.format(i+1, ['%-.08f' % x for x in result]))
+        # else:
+        # actual parameter, which is copy from visiom.tum
+        K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+        # compute the reference frame with the keyframe
+        c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
+        d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+        xis, errors = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xi = xis[-1]
+        # compute relative transform matrix
+        Tinv = inv(se3Exp(xi))   # just make sure current frame to keyframe
+        if i % step == 0:
+            # here just choose the keyframe
+            last_keyframe_pose = last_keyframe_pose @ Tinv
+            ckf, dkf = c2, d2
+        current_frame_pose = last_keyframe_pose @ Tinv
+        R = current_frame_pose[:3, :3]  # rotation matrix
+        t = current_frame_pose[:3, 3]  # t
+        q = Rfunc.from_matrix(R)
+        result = np.zeros(8)
+        result[0] = t1[i]
+        pose_t, pose_w = t, q.as_quat()
+        result[1:4], result[4:8] = pose_t, pose_w
+        results.append(['%-.08f' % x for x in result])
+        logV('{:04d} -> {}'.format(i+1, ['%-.08f' % x for x in result]))
 
         # save result to 'data/estimate.txt'
         if i % step == 0:
