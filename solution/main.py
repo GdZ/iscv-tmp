@@ -97,7 +97,7 @@ def alignment(input_dir, t1, rgbs, t2, depths):
         R = current_frame_pose[:3, :3]  # rotation matrix
         t = current_frame_pose[:3, 3]  # t
         q = Rfunc.from_matrix(R).as_quat()
-        result = np.concatenate((t1[i], t, q))
+        result = np.concatenate(([t1[i]], t, q))
         results.append(['%-.08f' % x for x in result])
         xi_arr.append(xi)
         logV('{:04d} -> {}'.format(i+1, ['%-.08f' % x for x in result]))
