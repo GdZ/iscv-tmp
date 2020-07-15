@@ -12,6 +12,8 @@ rgbd/
 *.xml
 output/
 assets/
+*.zip
+
 
 # no need to project
 github.xml
