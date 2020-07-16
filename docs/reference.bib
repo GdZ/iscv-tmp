@@ -1,3 +1,4 @@
+
 @article{mur-artal_orb-slam2_2017,
 	title = {{ORB}-{SLAM2}: an {Open}-{Source} {SLAM} {System} for {Monocular}, {Stereo} and {RGB}-{D} {Cameras}},
 	volume = {33},
@@ -34,19 +35,99 @@ https://github.com/raulmur/ORB\_SLAM2.git},
 	file = {IEEE Xplore Abstract Record:/home/zz/Zotero/storage/7UZRXT93/6696650.html:text/html;Submitted Version:/home/zz/Zotero/storage/9MKKLXYY/Kerl et al. - 2013 - Dense visual SLAM for RGB-D cameras.pdf:application/pdf}
 }
 
-@article{engel_direct_2018,
-	title = {Direct {Sparse} {Odometry}},
-	volume = {40},
+@article{davison_monoslam_2007,
+	title = {{MonoSLAM}: {Real}-{Time} {Single} {Camera} {SLAM}},
+	volume = {29},
 	issn = {1939-3539},
-	doi = {10.1109/TPAMI.2017.2658577},
-	abstract = {Direct Sparse Odometry (DSO) is a visual odometry method based on a novel, highly accurate sparse and direct structure and motion formulation. It combines a fully direct probabilistic model (minimizing a photometric error) with consistent, joint optimization of all model parameters, including geometry-represented as inverse depth in a reference frame-and camera motion. This is achieved in real time by omitting the smoothness prior used in other direct methods and instead sampling pixels evenly throughout the images. Since our method does not depend on keypoint detectors or descriptors, it can naturally sample pixels from across all image regions that have intensity gradient, including edges or smooth intensity variations on essentially featureless walls. The proposed model integrates a full photometric calibration, accounting for exposure time, lens vignetting, and non-linear response functions. We thoroughly evaluate our method on three different datasets comprising several hours of video. The experiments show that the presented approach significantly outperforms state-of-the-art direct and indirect methods in a variety of real-world settings, both in terms of tracking accuracy and robustness.},
-	number = {3},
+	shorttitle = {{MonoSLAM}},
+	doi = {10.1109/TPAMI.2007.1049},
+	abstract = {We present a real-time algorithm which can recover the 3D trajectory of a monocular camera, moving rapidly through a previously unknown scene. Our system, which we dub MonoSLAM, is the first successful application of the SLAM methodology from mobile robotics to the "pure vision" domain of a single uncontrolled camera, achieving real time but drift-free performance inaccessible to structure from motion approaches. The core of the approach is the online creation of a sparse but persistent map of natural landmarks within a probabilistic framework. Our key novel contributions include an active approach to mapping and measurement, the use of a general motion model for smooth camera movement, and solutions for monocular feature initialization and feature orientation estimation. Together, these add up to an extremely efficient and robust algorithm which runs at 30 Hz with standard PC and camera hardware. This work extends the range of robotic systems in which SLAM can be usefully applied, but also opens up new areas. We present applications of MonoSLAM to real-time 3D localization and mapping for a high-performance full-size humanoid robot and live augmented reality with a hand-held camera},
+	number = {6},
 	journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
-	author = {Engel, Jakob and Koltun, Vladlen and Cremers, Daniel},
-	month = mar,
-	year = {2018},
+	author = {Davison, Andrew J. and Reid, Ian D. and Molton, Nicholas D. and Stasse, Olivier},
+	month = jun,
+	year = {2007},
 	note = {Conference Name: IEEE Transactions on Pattern Analysis and Machine Intelligence},
-	keywords = {camera motion, Cameras, Computational modeling, consistent optimization, direct sparse odometry, distance measurement, fully direct probabilistic model, Geometry, image motion analysis, image sampling, joint optimization, motion formulation, optimisation, Optimization, probability, reference frame, Robustness, sample pixels, smooth intensity variations, Three-dimensional displays, visual odometry method, Visual odometry, SLAM, 3D reconstruction, structure from motion, Visualization},
+	keywords = {3D trajectory, 3D/stereo scene analysis, Algorithms, Artificial Intelligence, Autonomous vehicles, Cameras, Computer Systems, feature extraction, feature orientation estimation, Hardware, humanoid robot, humanoid robots, Image Enhancement, Image Interpretation, Computer-Assisted, image sensors, Imaging, Three-Dimensional, Information Storage and Retrieval, Layout, Mobile robots, monocular camera, MonoSLAM, Motion estimation, Motion measurement, Numerical Analysis, Computer-Assisted, Pattern Recognition, Automated, Photogrammetry, Real time systems, real-time single camera SLAM, Robot vision systems, Robustness, Signal Processing, Computer-Assisted, Simultaneous localization and mapping, SLAM (robots), tracking., Video Recording},
+	pages = {1052--1067},
+	file = {Submitted Version:/home/zz/Zotero/storage/ZB9QYJBY/Davison et al. - 2007 - MonoSLAM Real-Time Single Camera SLAM.pdf:application/pdf}
+}
+
+@inproceedings{klein_parallel_2007,
+	title = {Parallel {Tracking} and {Mapping} for {Small} {AR} {Workspaces}},
+	doi = {10.1109/ISMAR.2007.4538852},
+	abstract = {This paper presents a method of estimating camera pose in an unknown scene. While this has previously been attempted by adapting SLAM algorithms developed for robotic exploration, we propose a system specifically designed to track a hand-held camera in a small AR workspace. We propose to split tracking and mapping into two separate tasks, processed in parallel threads on a dual-core computer: one thread deals with the task of robustly tracking erratic hand-held motion, while the other produces a 3D map of point features from previously observed video frames. This allows the use of computationally expensive batch optimisation techniques not usually associated with real-time operation: The result is a system that produces detailed maps with thousands of landmarks which can be tracked at frame-rate, with an accuracy and robustness rivalling that of state-of-the-art model-based systems.},
+	booktitle = {2007 6th {IEEE} and {ACM} {International} {Symposium} on {Mixed} and {Augmented} {Reality}},
+	author = {Klein, Georg and Murray, David},
+	month = nov,
+	year = {2007},
+	keywords = {Algorithm design and analysis, augmented reality, batch optimisation techniques, Cameras, Concurrent computing, hand-held camera, Handheld computers, Layout, parallel mapping, parallel tracking, robot vision, Robot vision systems, robotic exploration, Robustness, Simultaneous localization and mapping, SLAM (robots), SLAM algorithms, Tracking, Yarn},
+	pages = {225--234},
+	file = {Klein and Murray - 2007 - Parallel Tracking and Mapping for Small AR Workspa.pdf:/home/zz/Zotero/storage/ZF9YC26L/Klein and Murray - 2007 - Parallel Tracking and Mapping for Small AR Workspa.pdf:application/pdf}
+}
+
+@inproceedings{engel_semi-dense_2013,
+	title = {Semi-dense visual odometry for a monocular camera},
+	booktitle = {Proceedings of the {IEEE} international conference on computer vision},
+	author = {Engel, Jakob and Sturm, Jurgen and Cremers, Daniel},
+	year = {2013},
+	pages = {1449--1456},
+	file = {Full Text:/home/zz/Zotero/storage/HC3GDRUU/Engel et al. - 2013 - Semi-dense visual odometry for a monocular camera.pdf:application/pdf}
+}
+
+@inproceedings{kerl_robust_2013,
+	title = {Robust odometry estimation for {RGB}-{D} cameras},
+	booktitle = {2013 {IEEE} {International} {Conference} on {Robotics} and {Automation}},
+	publisher = {IEEE},
+	author = {Kerl, Christian and Sturm, Jürgen and Cremers, Daniel},
+	year = {2013},
+	pages = {3748--3754},
+	file = {Full Text:/home/zz/Zotero/storage/RFZ5MJUT/Kerl et al. - 2013 - Robust odometry estimation for RGB-D cameras.pdf:application/pdf}
+}
+
+@article{engel_direct_2017,
+	title = {Direct sparse odometry},
+	volume = {40},
+	number = {3},
+	journal = {IEEE transactions on pattern analysis and machine intelligence},
+	author = {Engel, Jakob and Koltun, Vladlen and Cremers, Daniel},
+	year = {2017},
+	note = {Publisher: IEEE},
 	pages = {611--625},
 	file = {IEEE Xplore Full Text PDF:/home/zz/Zotero/storage/DCPJV2IZ/Engel et al. - 2018 - Direct Sparse Odometry.pdf:application/pdf}
+}
+
+@article{mur-artal_orb-slam_2015,
+	title = {{ORB}-{SLAM}: a {Versatile} and {Accurate} {Monocular} {SLAM} {System}},
+	volume = {31},
+	issn = {1552-3098, 1941-0468},
+	shorttitle = {{ORB}-{SLAM}},
+	url = {http://arxiv.org/abs/1502.00956},
+	doi = {10.1109/TRO.2015.2463671},
+	abstract = {This paper presents ORB-SLAM, a feature-based monocular SLAM system that operates in real time, in small and large, indoor and outdoor environments. The system is robust to severe motion clutter, allows wide baseline loop closing and relocalization, and includes full automatic initialization. Building on excellent algorithms of recent years, we designed from scratch a novel system that uses the same features for all SLAM tasks: tracking, mapping, relocalization, and loop closing. A survival of the fittest strategy that selects the points and keyframes of the reconstruction leads to excellent robustness and generates a compact and trackable map that only grows if the scene content changes, allowing lifelong operation. We present an exhaustive evaluation in 27 sequences from the most popular datasets. ORB-SLAM achieves unprecedented performance with respect to other state-of-the-art monocular SLAM approaches. For the benefit of the community, we make the source code public.},
+	number = {5},
+	urldate = {2020-07-16},
+	journal = {IEEE Transactions on Robotics},
+	author = {Mur-Artal, Raul and Montiel, J. M. M. and Tardos, Juan D.},
+	month = oct,
+	year = {2015},
+	note = {arXiv: 1502.00956},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Robotics},
+	pages = {1147--1163},
+	annote = {Comment: 17 pages. 13 figures. IEEE Transactions on Robotics, 2015. Project webpage (videos, code): http://webdiis.unizar.es/{\textasciitilde}raulmur/orbslam/},
+	file = {arXiv Fulltext PDF:/home/zz/Zotero/storage/NG98WCCQ/Mur-Artal et al. - 2015 - ORB-SLAM a Versatile and Accurate Monocular SLAM .pdf:application/pdf}
+}
+
+@inproceedings{newcombe_kinectfusion_2011,
+	title = {{KinectFusion}: {Real}-time dense surface mapping and tracking},
+	shorttitle = {{KinectFusion}},
+	doi = {10.1109/ISMAR.2011.6092378},
+	abstract = {We present a system for accurate real-time mapping of complex and arbitrary indoor scenes in variable lighting conditions, using only a moving low-cost depth camera and commodity graphics hardware. We fuse all of the depth data streamed from a Kinect sensor into a single global implicit surface model of the observed scene in real-time. The current sensor pose is simultaneously obtained by tracking the live depth frame relative to the global model using a coarse-to-fine iterative closest point (ICP) algorithm, which uses all of the observed depth data available. We demonstrate the advantages of tracking against the growing full surface model compared with frame-to-frame tracking, obtaining tracking and mapping results in constant time within room sized scenes with limited drift and high accuracy. We also show both qualitative and quantitative results relating to various aspects of our tracking and mapping system. Modelling of natural scenes, in real-time with only commodity sensor and GPU hardware, promises an exciting step forward in augmented reality (AR), in particular, it allows dense surfaces to be reconstructed in real-time, with a level of detail and robustness beyond any solution yet presented using passive computer vision.},
+	booktitle = {2011 10th {IEEE} {International} {Symposium} on {Mixed} and {Augmented} {Reality}},
+	author = {Newcombe, Richard A. and Izadi, Shahram and Hilliges, Otmar and Molyneaux, David and Kim, David and Davison, Andrew J. and Kohi, Pushmeet and Shotton, Jamie and Hodges, Steve and Fitzgibbon, Andrew},
+	month = oct,
+	year = {2011},
+	keywords = {AR, Cameras, Dense Reconstruction, Depth Cameras, GPU, Image reconstruction, Iterative closest point algorithm, Real time systems, Real-Time, Simultaneous localization and mapping, SLAM, Surface reconstruction, Three dimensional displays, Tracking, Volumetric Representation},
+	pages = {127--136},
+	file = {Full Text:/home/zz/Zotero/storage/9VUX5JK6/Newcombe et al. - 2011 - KinectFusion Real-time dense surface mapping and .pdf:application/pdf;Submitted Version:/home/zz/Zotero/storage/8UIGIUNE/Newcombe et al. - 2011 - KinectFusion Real-time dense surface mapping and .pdf:application/pdf}
 }
