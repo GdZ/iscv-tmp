@@ -59,7 +59,6 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
             else:
                 inv = np.linalg.pinv(mat)
             upd = - inv.dot(Jac.T).dot(np.multiply(weight, residual).reshape(weight.flatten().size, 1))
-
             last_xi = xi
             xi = se3Log(se3Exp(upd) @ se3Exp(xi))
             err = np.mean(residual * residual)
@@ -71,5 +70,9 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
             err_last = err
         residuals.append(residual)
         weights.append(weight)
-
-    return xi_arr, err_arr
+        # Covariance matrix = inv in our code
+        # compute entropy
+        #Hessian = Jac.T @ Jac
+        cov = inv
+        H_xi = 0.5*len(last_xi)*(1+np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
+    return xi_arr, err_arr,H_xi
