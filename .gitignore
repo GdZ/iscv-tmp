@@ -13,7 +13,14 @@ rgbd/
 output/
 assets/
 *.zip
-
+*.aux
+*.bbl
+*.blg
+*.glo
+*.pdf
+*.synctex.gz
+*.toc
+*.aux
 
 # no need to project
 github.xml
