@@ -4,6 +4,7 @@ from utils.se3 import se3Exp
 from utils.se3 import se3Log
 
 
+# optim
 def deriveResidualsAnalytic(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     Jac, residual, weights = [], [], []
     T = se3Exp(xi)
