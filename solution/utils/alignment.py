@@ -77,4 +77,4 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         cov = inv
         H_xi = 0.5*len(last_xi)*(1+np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
 
-    return xi_arr, err_arr,H_xi
+    return xi_arr, err_arr, H_xi

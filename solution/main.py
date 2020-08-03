@@ -57,14 +57,14 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     :param depths: depth-images
     """
     results, xi_arr = [], []
-    start, step = 0, 9
+    start, step = 0,9
+    threshold = 0.9
     # actual parameter, which is copy from visiom.tum
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
     entropy_ratio = []
-    keyframes_color = []
-    keyframes_depth = []
-    for i in np.arange(start, len(rgbs)):
-        # for i in np.arange(start, 100):
+    key_frame_indices= []
+    # for i in np.arange(start, len(rgbs)):
+    for i in np.arange(start, 100):
         if i == 0:
             # write the head of the estimate.txt
             with open('data/estimate.txt', "w") as f:
@@ -73,45 +73,47 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             with open('data/delta_x.csv', 'w') as f:
                 f.write('')
             f.close()
-
-            # initial of the first frame
+            #
             tmp = [t1[i], 0, 0, 0, 0, 0, 0, 1]
             results.append(['%-.06f' % x for x in tmp])
-
             # world-frame initial pose
             pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-            color_keyframe, depth_keyframe = c1, d1  # initial the current keyframe with first pair of rgb- and depth-image
-            keyframes_color.append(c1)
-            keyframes_depth.append(d1)
+            ckf, dkf = c1, d1
+            key_frame_index = 0
 
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        # compute the delta_{x}, error, and Hessian_{xi}
-        # xis, errors = doAlignment(ref_img=color_keyframe, ref_depth=depth_keyframe, t_img=c2, t_depth=d2, k=K)
-        xis, errors, H_xi = doAlignment(ref_img=color_keyframe, ref_depth=depth_keyframe, t_img=c2, t_depth=d2, k=K)
-        xi = xis[-1]  # just use the last item from the optimized xi array
-        xi_arr.append(xi)  # keep all xi
-        logV('{:04d} -> xi: {}'.format(i + 1, ['%-.08f' % x for x in xi]))
+        xis, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xi = xis[-1]
+        xi_arr.append(xi)
+        logV('{:04d} -> xi: {}'.format(i+1, ['%-.08f' % x for x in xi]))
+
+        if i == 0:
+            base_line = H_xi
+            plt.imshow(ckf,cmap='gray')
+            plt.show()
 
         # compute relative transform matrix
-        # pose_{current-frame, keyframe} = T_{keyframe, current-frame} \cdot pose_{current-frame}
-        t_inv = inv(se3Exp(xi))  # just make sure current frame to keyframe
-        if i % step == 0:
-            # here just choose the keyframe
-            last_keyframe_pose = last_keyframe_pose @ t_inv
-            color_keyframe, depth_keyframe = c2, d2
-            keyframes_color.append(c2)
-            keyframes_depth.append(d2)
+        Tinv = inv(se3Exp(xi))   # just make sure current frame to keyframe
+        #if i % step == 0:
+        if i == key_frame_index + 1:
             base_line = H_xi
-
-        if i % step == 1:
+        if H_xi/base_line < threshold:
+            # here just choose the keyframe & update keyframe
+            last_keyframe_pose = last_keyframe_pose @ Tinv
+            ckf, dkf = c2, d2
+            key_frame_index = i
+            key_frame_indices.append(i)
+            print(i)
             base_line = H_xi
+            plt.imshow(c2, cmap='gray')
+            plt.show()
 
-        current_frame_pose = last_keyframe_pose @ t_inv
+        current_frame_pose = last_keyframe_pose @ Tinv
         R = current_frame_pose[:3, :3]  # rotation matrix
         t = current_frame_pose[:3, 3]  # t
         q = Rfunc.from_matrix(R).as_quat()
@@ -119,8 +121,9 @@ def alignment(input_dir, t1, rgbs, t2, depths):
         results.append(['%-.08f' % x for x in result])
 
         # entropy ratio
-        entropy_ratio.append(H_xi / base_line)
-        logV('{:04d} -> resutl: {}'.format(i + 1, ['%-.08f' % x for x in result]))
+        entropy_ratio.append(H_xi/base_line)
+        logV('{:04d} -> resutl: {}'.format(i+1, ['%-.08f' % x for x in result]))
+        print(key_frame_index)
 
         # save result to 'data/estimate.txt'
         if i % step == 0:
@@ -129,25 +132,10 @@ def alignment(input_dir, t1, rgbs, t2, depths):
             delta_x.to_csv('data/delta_x.csv', encoding='utf-8', index_label=False, index=False, mode='a', header=False)
             # save estimate.txt
             csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
-            csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a',
-                       header=False)
+            csv.to_csv('data/estimate.txt', encoding='utf-8', index_label=False, index=False, sep=' ', mode='a', header=False)
             results, xi_arr = [], []
-    # end for
-
-    # (d) optimization of keyframe pose
-    for i in np.arange(len(keyframes_color)-1):
-        last_ref_ckf, last_ref_dkf = keyframes_color(i), keyframes_depth(i)
-        timg, tdep = keyframes_color(i+1), keyframes_depth(i+1)
-        xis, errors, h_xi = doAlignment(ref_img=last_ref_ckf, ref_depth=last_ref_dkf, t_img=timg, t_depth=tdep, k=K)
-        xi = xis[-1]
-        logV('{:04d} -> xi: {}'.format(i + 1, ['%-.08f' % x for x in xi]))
-        # new pose of keyframe
-        # pass
-    # recompute pose of all image
-
     # plot entropy
     plt.plot(entropy_ratio, 'r-')
-
 
 def show(fname):
     im = imReadByGray(file_path=fname)
@@ -158,4 +146,4 @@ def show(fname):
 if __name__ == '__main__':
     main(sys.argv[1:])
     plt.show()
-    logV('finished....')
+    print('finished....')
