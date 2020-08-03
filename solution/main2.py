@@ -56,17 +56,25 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     :param t2: timestamp of depth images
     :param depths: depth-images
     """
-    results, xi_array = [], []
     # actual parameter, which is copy from visiom.tum
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+
     # task (a), (b)
-    # xi_array, results = taskAB(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
+    xi_array, pose_w_kf_array = taskAB(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
+    np.save('xi_array_ab', xi_array)
+    np.save('pose_w_kf_array_ab', pose_w_kf_array)
 
     # task (c)
-    xi_array, results = taskC(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
+    keyframe_w_kf_array, entropy_c, kf_idx_c = taskC(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
+    np.save('keyframe_w_kf_array_c', keyframe_w_kf_array)
+    np.save('entropy_c', entropy_c)
+    np.save('kf_idx_c', kf_idx_c)
 
     # task (d)
-    taskD()
+    # keyframe_d = taskD(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
+
+    # task (e)
+    # keyframe_e = taskE(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
 
 
 def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
@@ -139,10 +147,6 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
                        mode='a', header=False)
             results, xi_array = [], []
 
-    # save final result of task a, b to npy
-    np.save('xi_array', xi_array)
-    np.save('result_array', result_array)
-
     return xi_array, result_array
 
 
@@ -158,8 +162,8 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
     :rtype: object
     """
     timestamp = timestamp_color
-    result_array, xi_array, results = [], [], []
-    entropy_ratio, key_frame_indices = [], []
+    keyframe_array, xi_array = [], []
+    entropy_ratio, keyframe_idx_array = [], []
     threshold = .9
 
     start, step = 0, 9
@@ -174,7 +178,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
             f.close()
             # initial result
             tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
-            results.append(['%-.06f' % x for x in tmp])
+            keyframe_array.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
             pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
@@ -207,7 +211,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
             key_frame_index = i
-            key_frame_indices.append(i)
+            keyframe_idx_array.append(i)
             logD('keyframe_index: {}\n\tctx: {}'.format(i, last_keyframe_pose))
             base_line = H_xi
             # change the pose of last keyframe to new format, and add to list
@@ -215,7 +219,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
             t = last_keyframe_pose[:3, 3]  # t
             q = Rfunc.from_matrix(R).as_quat()
             result = np.concatenate(([timestamp[i]], t, q))
-            result_array.append(['%-.08f' % x for x in result])
+            keyframe_array.append(['%-.08f' % x for x in result])
             # logV('{:04d} -> result: {}'.format(i + 1, ['%-.08f' % x for x in result]))
             logV('{:04d} -> idx_kf: {} result: {}'.format(i + 1, key_frame_index, ['%-.08f' % x for x in result]))
 
@@ -223,11 +227,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
         entropy_ratio.append(H_xi / base_line)
         logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
 
-        np.save('c_entropy', entropy_ratio)
-        np.save('c_keyframe', result_array)
-        np.save('c_xi', xi_array)
-
-    return xi_array, result_array, entropy_ratio
+    return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
 def taskD(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
@@ -254,7 +254,7 @@ def taskD(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
     return xi_array, result_array
 
 
-def taskE():
+def taskE(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
     pass
 
 

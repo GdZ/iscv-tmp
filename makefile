@@ -1,7 +1,7 @@
 all: download env associate build
 
 build:
-	python3 solution/main.py --input-dir 'solution/data' --output-dir 'solution/output'
+	python3 solution/main2.py --input-dir 'solution/data' --output-dir 'solution/output'
 
 env:
 	python3 -m pip install -r requirements.txt
