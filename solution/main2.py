@@ -223,7 +223,11 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
         entropy_ratio.append(H_xi / base_line)
         logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
 
-    return xi_array, result_array
+        np.save('c_entropy', entropy_ratio)
+        np.save('c_keyframe', result_array)
+        np.save('c_xi', xi_array)
+
+    return xi_array, result_array, entropy_ratio
 
 
 def taskD(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
