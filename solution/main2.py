@@ -60,19 +60,20 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
     # task (a), (b)
-    delta_x_array, pose_w_kf_array = taskAB(K, input_dir,
+    delta_x_array, pose_w2kf_array = taskAB(K, input_dir,
                                             colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2,
-                                            epoch_size=9, batch_size=100)
+                                            epoch_size=9, batch_size=len(rgbs))
     np.save('delta_xs_array', delta_x_array)
-    np.save('pose_w2kf_array', pose_w_kf_array)
+    np.save('pose_w2kf_array', pose_w2kf_array)
 
     # task (c)
-    keyframe_w_kf_array, entropy_array, kf_idx_array = taskC(K, input_dir,
-                                                     colors=rgbs, depths=depths,
-                                                     timestamp_color=t1, timestampe_depth=t2,
-                                                     threshold=0.9,
-                                                     epoch_size=9, batch_size=100)
-    np.save('keyframe_w2kf_array', keyframe_w_kf_array)
+    keyframe_w2kf_array, entropy_array, kf_idx_array = taskC(K, input_dir,
+                                                             colors=rgbs, depths=depths,
+                                                             timestamp_color=t1,
+                                                             timestampe_depth=t2,
+                                                             threshold=0.9,
+                                                             batch_size=len(rgbs))
+    np.save('keyframe_w2kf_array', keyframe_w2kf_array)
     np.save('entropy_array', entropy_array)
     np.save('kf_idx_array', kf_idx_array)
 
