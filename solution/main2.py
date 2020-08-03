@@ -60,15 +60,21 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
     # task (a), (b)
-    xi_array, pose_w_kf_array = taskAB(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
-    np.save('xi_array_ab', xi_array)
-    np.save('pose_w_kf_array_ab', pose_w_kf_array)
+    delta_x_array, pose_w_kf_array = taskAB(K, input_dir,
+                                            colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2,
+                                            epoch_size=9, batch_size=100)
+    np.save('delta_xs_array', delta_x_array)
+    np.save('pose_w2kf_array', pose_w_kf_array)
 
     # task (c)
-    keyframe_w_kf_array, entropy_c, kf_idx_c = taskC(K, input_dir, colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2)
-    np.save('keyframe_w_kf_array_c', keyframe_w_kf_array)
-    np.save('entropy_c', entropy_c)
-    np.save('kf_idx_c', kf_idx_c)
+    keyframe_w_kf_array, entropy_array, kf_idx_array = taskC(K, input_dir,
+                                                     colors=rgbs, depths=depths,
+                                                     timestamp_color=t1, timestampe_depth=t2,
+                                                     threshold=0.9,
+                                                     epoch_size=9, batch_size=100)
+    np.save('keyframe_w2kf_array', keyframe_w_kf_array)
+    np.save('entropy_array', entropy_array)
+    np.save('kf_idx_array', kf_idx_array)
 
     # task (d)
     # keyframe_d = taskD(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
@@ -77,7 +83,7 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     # keyframe_e = taskE(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
 
 
-def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
+def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100):
     """
     :param K:
     :param input_dir:
@@ -87,10 +93,11 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
     :param timestampe_depth:
     """
     timestamp = timestamp_color
-    result_array, xi_array, results = [], [], []
+    result_array, delta_x_array = [], []
+    delta_xs_epoch, results_epoch = [], []
 
-    start, step = 0, 9
-    for i in np.arange(start, len(colors)):
+    start = 0
+    for i in np.arange(start, batch_size):
         if i == 0:
             # write the head of the estimate.txt
             with open('{}/estimate.txt'.format(input_dir), "w") as f:
@@ -101,7 +108,7 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
             f.close()
             # initial result
             tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
-            results.append(['%-.06f' % x for x in tmp])
+            results_epoch.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
             pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
@@ -114,14 +121,15 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
         xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
         xi = xis[-1]
-        xi_array.append(xi)
+        delta_xs_epoch.append(xi)
+        delta_x_array.append(xi)
         logV('{:04d} -> xi: {}'.format(i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
 
         # choose one frame from each N frames as keyframe
-        if i % step == 0:
+        if i % epoch_size == 0:
             # here just choose the keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -131,26 +139,27 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
         t = current_frame_pose[:3, 3]  # t
         q = Rfunc.from_matrix(R).as_quat()
         result = np.concatenate(([timestamp[i]], t, q))
-        results.append(['%-.08f' % x for x in result])
+        results_epoch.append(['%-.08f' % x for x in result])
         result_array.append(['%-.08f' % x for x in result])
         logV('{:04d} -> resutl: {}'.format(i + 1, ['%-.08f' % x for x in result]))
 
         # save result to 'data/estimate.txt'
-        if i % step == 0:
+        if i % epoch_size == 0:
             # save \delta_{x}
-            delta_x = pd.DataFrame(np.asarray(xi_array))
+            delta_x = pd.DataFrame(np.asarray(delta_xs_epoch))
             delta_x.to_csv('{}/delta_x.csv'.format(input_dir), encoding='utf-8', index_label=False, index=False,
                            mode='a', header=False)
             # save estimate.txt
-            csv = pd.DataFrame(np.asarray(results), columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
+            csv = pd.DataFrame(np.asarray(results_epoch),
+                               columns=['timestamp', 'tx', 'ty', 'tz', 'qx', 'qy', 'qz', 'qw'])
             csv.to_csv('{}/estimate.txt'.format(input_dir), encoding='utf-8', index_label=False, index=False, sep=' ',
                        mode='a', header=False)
-            results, xi_array = [], []
+            results_epoch, delta_xs_epoch = [], []
 
-    return xi_array, result_array
+    return delta_x_array, result_array
 
 
-def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
+def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100, threshold=.9):
     """
     :param K:
     :param input_dir:
@@ -164,10 +173,9 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
     timestamp = timestamp_color
     keyframe_array, xi_array = [], []
     entropy_ratio, keyframe_idx_array = [], []
-    threshold = .9
 
-    start, step = 0, 9
-    for i in np.arange(start, len(colors)):
+    start = 0
+    for i in np.arange(start, batch_size):
         if i == 0:
             # write the head of the estimate.txt
             with open('{}/estimate.txt'.format(input_dir), "w") as f:
@@ -206,6 +214,10 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
         if i == key_frame_index + 1:
             base_line = H_xi
 
+        # entropy ratio, save entropy of all images
+        entropy_ratio.append(H_xi / base_line)
+        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
+
         if (H_xi / base_line) < threshold:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
@@ -222,10 +234,6 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth):
             keyframe_array.append(['%-.08f' % x for x in result])
             # logV('{:04d} -> result: {}'.format(i + 1, ['%-.08f' % x for x in result]))
             logV('{:04d} -> idx_kf: {} result: {}'.format(i + 1, key_frame_index, ['%-.08f' % x for x in result]))
-
-        # entropy ratio, save entropy of all images
-        entropy_ratio.append(H_xi / base_line)
-        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
 
     return keyframe_array, entropy_ratio, keyframe_idx_array
 

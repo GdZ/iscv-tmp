@@ -38,8 +38,8 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         for j in np.arange(N):
             # % ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residual, weight = deriveResidualsNumeric(scaled_ref_img, scaled_ref_depth,
-                                                             scaled_img, xi, scaled_rk,
-                                                             norm_param, use_hubernorm)
+                                                           scaled_img, xi, scaled_rk,
+                                                           norm_param, use_hubernorm)
 
             # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
             not_valid = np.isnan(np.sum(Jac, axis=1) + residual)
@@ -75,6 +75,6 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         # compute entropy
         # Hessian = Jac.T @ Jac
         cov = inv
-        H_xi = 0.5*len(last_xi)*(1+np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
+        H_xi = 0.5 * len(last_xi) * (1 + np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
 
     return xi_arr, err_arr, H_xi
