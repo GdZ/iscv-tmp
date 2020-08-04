@@ -219,10 +219,8 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch
             base_line = H_xi
 
         # entropy ratio, save entropy of all images
-        entropy_ratio.append(H_xi / base_line)
-        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
-
-        if (H_xi / base_line) < lower or (H_xi / base_line) > upper:
+        current_rate = H_xi / base_line
+        if current_rate < lower or current_rate > upper:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -230,14 +228,18 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch
             keyframe_idx_array.append(i)
             logD('keyframe_index: {}\n\tctx: {}'.format(i, last_keyframe_pose))
             base_line = H_xi
+            current_rate = H_xi / base_line
             # change the pose of last keyframe to new format, and add to list
             R = last_keyframe_pose[:3, :3]  # rotation matrix
             t = last_keyframe_pose[:3, 3]  # t
             q = Rfunc.from_matrix(R).as_quat()
-            result = np.concatenate(([timestamp[i]], t, q))
-            keyframe_array.append(['%-.08f' % x for x in result])
-            # logV('{:04d} -> result: {}'.format(i + 1, ['%-.08f' % x for x in result]))
-            logV('{:04d} -> idx_kf: {} result: {}'.format(i + 1, key_frame_index, ['%-.08f' % x for x in result]))
+            tmp = np.concatenate(([timestamp[i]], t, q))
+            kf = ['%-.08f' % x for x in tmp]
+            keyframe_array.append(kf)
+            logV('{:04d} -> idx_kf: {} result: {}'.format(i + 1, key_frame_index, kf))
+
+        entropy_ratio.append(current_rate)
+        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, current_rate))
 
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
