@@ -71,8 +71,11 @@ def alignment(input_dir, t1, rgbs, t2, depths):
                                                              colors=rgbs, depths=depths,
                                                              timestamp_color=t1,
                                                              timestampe_depth=t2,
-                                                             threshold=0.9,
-                                                             batch_size=len(rgbs))
+                                                             lower=0.91,  # 0.915
+                                                             upper=1.09,
+                                                             # batch_size=len(rgbs)
+                                                             batch_size=400
+                                                             )
     np.save('keyframe_w2kf_array', keyframe_w2kf_array)
     np.save('entropy_array', entropy_array)
     np.save('kf_idx_array', kf_idx_array)
@@ -160,7 +163,7 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoc
     return delta_x_array, result_array
 
 
-def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100, threshold=.9):
+def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100, lower=.9, upper=1.1):
     """
     :param K:
     :param input_dir:
@@ -219,7 +222,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch
         entropy_ratio.append(H_xi / base_line)
         logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, H_xi / base_line))
 
-        if (H_xi / base_line) < threshold:
+        if (H_xi / base_line) < lower or (H_xi / base_line) > upper:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
