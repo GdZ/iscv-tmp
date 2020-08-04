@@ -72,7 +72,7 @@ def alignment(input_dir, t1, rgbs, t2, depths):
                                                              timestamp_color=t1,
                                                              timestampe_depth=t2,
                                                              lower=0.91,  # 0.915
-                                                             upper=1.09,
+                                                             upper=1.04,
                                                              # batch_size=len(rgbs)
                                                              batch_size=400
                                                              )
