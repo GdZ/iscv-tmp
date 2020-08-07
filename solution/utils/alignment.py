@@ -75,6 +75,7 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         # compute entropy
         # Hessian = Jac.T @ Jac
         cov = inv
-        H_xi = 0.5 * len(last_xi) * (1 + np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
+        H_xi = 0.5 * np.log(np.linalg.det(2*np.e*np.pi*cov))
+        #H_xi = 0.5 * len(last_xi) * (1 + np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
 
     return xi_arr, err_arr, H_xi

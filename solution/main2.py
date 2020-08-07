@@ -60,25 +60,27 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
     # task (a), (b)
-    delta_x_array, pose_w2kf_array = taskAB(K, input_dir,
-                                            colors=rgbs, depths=depths, timestamp_color=t1, timestampe_depth=t2,
-                                            epoch_size=9, batch_size=len(rgbs))
+    delta_x_array, pose_w2kf_array, trans_dist = taskAB(K, input_dir,
+                                                        colors=rgbs, depths=depths,
+                                                        timestamp_color=t1, timestampe_depth=t2,
+                                                        batch_size=len(rgbs),threshold=0.2)
+    #plt.plot(trans_dist)
     np.save('delta_xs_array', delta_x_array)
     np.save('pose_w2kf_array', pose_w2kf_array)
 
     # task (c)
-    keyframe_w2kf_array, entropy_array, kf_idx_array = taskC(K, input_dir,
-                                                             colors=rgbs, depths=depths,
-                                                             timestamp_color=t1,
-                                                             timestampe_depth=t2,
-                                                             lower=0.91,  # 0.915
-                                                             upper=1.04,
-                                                             # batch_size=len(rgbs)
-                                                             batch_size=400
-                                                             )
-    np.save('keyframe_w2kf_array', keyframe_w2kf_array)
-    np.save('entropy_array', entropy_array)
-    np.save('kf_idx_array', kf_idx_array)
+    #keyframe_w2kf_array, entropy_array, kf_idx_array = taskC(K, input_dir,
+    #                                                         colors=rgbs, depths=depths,
+    #                                                         timestamp_color=t1,
+    #                                                         timestampe_depth=t2,
+    #                                                         lower=0.91,  # 0.915
+    #                                                         upper=1.04,
+    #                                                         # batch_size=len(rgbs)
+    #                                                         batch_size=200
+    #                                                         )
+    #np.save('keyframe_w2kf_array', keyframe_w2kf_array)
+    #np.save('entropy_array', entropy_array)
+    #np.save('kf_idx_array', kf_idx_array)
 
     # task (d)
     # keyframe_d = taskD(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
@@ -87,7 +89,7 @@ def alignment(input_dir, t1, rgbs, t2, depths):
     # keyframe_e = taskE(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
 
 
-def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100):
+def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100,threshold = 0.15):
     """
     :param K:
     :param input_dir:
@@ -99,6 +101,7 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoc
     timestamp = timestamp_color
     result_array, delta_x_array = [], []
     delta_xs_epoch, results_epoch = [], []
+    trans_dist = []
 
     start = 0
     for i in np.arange(start, batch_size):
@@ -131,9 +134,10 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoc
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
-
+        distance = translation_distance(t_inverse)
+        trans_dist.append(distance)
         # choose one frame from each N frames as keyframe
-        if i % epoch_size == 0:
+        if distance > threshold:
             # here just choose the keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -148,7 +152,7 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoc
         logV('{:04d} -> resutl: {}'.format(i + 1, ['%-.08f' % x for x in result]))
 
         # save result to 'data/estimate.txt'
-        if i % epoch_size == 0:
+        if distance > threshold:
             # save \delta_{x}
             delta_x = pd.DataFrame(np.asarray(delta_xs_epoch))
             delta_x.to_csv('{}/delta_x.csv'.format(input_dir), encoding='utf-8', index_label=False, index=False,
@@ -160,10 +164,11 @@ def taskAB(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoc
                        mode='a', header=False)
             results_epoch, delta_xs_epoch = [], []
 
-    return delta_x_array, result_array
+    return delta_x_array, result_array, trans_dist
 
 
-def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100, lower=.9, upper=1.1):
+def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch_size=9, batch_size=100, lower=.9,
+          upper=1.1):
     """
     :param K:
     :param input_dir:
@@ -220,7 +225,7 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch
 
         # entropy ratio, save entropy of all images
         current_rate = H_xi / base_line
-        if current_rate < lower or current_rate > upper:
+        if current_rate < lower:  # or current_rate > upper:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -236,11 +241,11 @@ def taskC(K, input_dir, colors, depths, timestamp_color, timestampe_depth, epoch
             tmp = np.concatenate(([timestamp[i]], t, q))
             kf = ['%-.08f' % x for x in tmp]
             keyframe_array.append(kf)
-            logV('{:04d} -> idx_kf: {} result: {}'.format(i + 1, key_frame_index, kf))
+            logV('{:04d} -> idx_kf: {} result: {}'.format(i, key_frame_index, kf))
 
         entropy_ratio.append(current_rate)
-        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i + 1, key_frame_index, current_rate))
-
+        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i, key_frame_index, current_rate))
+        plt.plot(entropy_ratio)
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
@@ -276,6 +281,11 @@ def show(fname):
     im = imReadByGray(file_path=fname)
     plt.imshow(im, cmap='gray')
     # plt.show()
+
+
+def translation_distance(relative_pose):
+    t = relative_pose[:3, 3]
+    return np.sqrt((np.sum(t ** 2)))
 
 
 if __name__ == '__main__':
