@@ -87,10 +87,17 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     saveData(keyframe_w2kf_array, outdir=input_dir, fn='estimate_c.txt')
 
     # task (d)
-    # keyframe_d = taskD(K, input_dir, kf_idx_array, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
+    keyframe_w2kf_array = np.load('{}/keyframe_w2kf_array.npy'.format(output_dir))
+    kfs, errors = taskD(K, input_dir, keyframes=keyframe_w2kf_array)
+    if len(kfs) > 0:
+        np.save('{}/keyframe_d'.format(output_dir), kfs)
+        saveData(kfs, outdir=input_dir, fn='estimate_d.txt')
 
     # task (e)
-    # keyframe_e = taskE(K, input_dir, kf_idx_c, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
+    keyframe_e = taskE(K, input_dir, keyframe_w2kf_array, colors=rgbs, depths=depths, timestamp_color=t1, timestamp_depth=t2)
+    if len(keyframe_e) > 0:
+        np.save('{}/keyframe_e'.format(output_dir), keyframe_e)
+        saveData(keyframe_e, outdir=input_dir, fn='estimate_e.txt')
 
 
 def show(fname):

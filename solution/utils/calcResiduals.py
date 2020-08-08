@@ -1,6 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from utils.se3 import se3Exp
+from scipy.linalg import inv
+from scipy.spatial.transform import Rotation
+from scipy.linalg import logm
+# self define
+from utils.se3 import se3Exp, se3Log
 from utils.interpolate import interp2d
 from utils.debug import isDebug
 
@@ -45,20 +49,18 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     else:
         weights = 2. / (1. + residuals ** 2 / norm_param ** 2) ** 2
 
-    # plot residual
-    if isDebug():
-        # fig = plt.figure(figsize=(12, 6))
-        plt.subplot(1, 2, 1)
-        plt.imshow(residuals, cmap='Greys')
-        plt.xlabel('residuals')
-        plt.subplot(1, 2, 2)
-        plt.imshow(weights, cmap='Greys')
-        plt.xlabel('weights')
-        # plt.show()
-
     return residuals.flatten(), weights.flatten()
 
 
 def relativeError(trans_kf1, trans_kf2):
-
-    pass
+    t1, q1 = trans_kf1[1:4], trans_kf1[4:]
+    r1 = Rotation.from_quat(q1).as_matrix()
+    t2, q2 = trans_kf2[1:4], trans_kf2[4:]
+    r2 = Rotation.from_quat(q2).as_matrix()
+    T1, T2 = np.zeros(shape=(4,4)), np.zeros(shape=(4,4))
+    T1[3,3], T2[3,3] = 1, 1
+    T1[:3, :3], T1[:3, 3] = r1, t1
+    T2[:3, :3], T2[:3, 3] = r2, t2
+    delta_t = inv(T1) @ T2
+    error = logm(delta_t @ inv(T1) @ T2)
+    return delta_t, error

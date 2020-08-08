@@ -9,18 +9,11 @@ from utils.alignment import doAlignment
 from utils.se3 import se3Exp
 from utils.debug import logD
 from utils.debug import logV
+from utils.calcResiduals import relativeError
 
 
 def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
-           input_dir='./data', epoch_size=9, batch_size=200, threshold=0.095):
-    """
-    :param K:
-    :param input_dir:
-    :param colors:
-    :param depths:
-    :param timestamp_color:
-    :param timestampe_depth:
-    """
+           input_dir='./data', epoch_size=9, batch_size=200, threshold=0.052):
     timestamp = timestamp_color
     result_array, delta_x_array = [], []
     delta_xs_epoch, results_epoch = [], []
@@ -64,8 +57,8 @@ def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
         t = current_frame_pose[:3, 3]  # t
         q = Rotation.from_matrix(R).as_quat()
         result = np.concatenate(([timestamp[i]], t, q))
-        results_epoch.append(['%-.08f' % x for x in result])
-        result_array.append(['%-.08f' % x for x in result])
+        results_epoch.append([eval('%-.08f' % x) for x in result])
+        result_array.append([eval('%-.08f' % x) for x in result])
 
         logV('pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format(i, idx_kf, distance, ['%-.08f' % x for x in result]))
 
@@ -74,16 +67,6 @@ def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
 
 def taskC(K, colors, depths, timestamp_color, timestampe_depth,
           input_dir='./data', epoch_size=9, batch_size=200, lower=.9, upper=1.1):
-    """
-    :param K:
-    :param input_dir:
-    :param colors:
-    :param depths:
-    :param timestamp_color:
-    :param timestampe_depth:
-    :return:
-    :rtype: object
-    """
     timestamp = timestamp_color
     keyframe_array, xi_array = [], []
     entropy_ratio, keyframe_idx_array = [], []
@@ -147,28 +130,18 @@ def taskC(K, colors, depths, timestamp_color, timestampe_depth,
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
-def taskD(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
-    """
-    :param K:
-    :param input_dir:
-    :param keyframes_color:
-    :param keyframes_depth:
-    :param timestamp_color:
-    :return:
-    :rtype: object
-    """
-    xi_array, result_array = [], []
+def taskD(K, input_dir, keyframes):
+    kfs, errors = [], []
     # (d) optimization of keyframe pose
-    for i in np.arange(len(keyframes_color) - 1):
-        last_ref_ckf, last_ref_dkf = keyframes_color(i), keyframes_depth(i)
-        timg, tdep = keyframes_color(i + 1), keyframes_depth(i + 1)
-        xis, errors, h_xi = doAlignment(ref_img=last_ref_ckf, ref_depth=last_ref_dkf, t_img=timg, t_depth=tdep, k=K)
-        xi = xis[-1]
-        logV('{:04d} -> xi: {}'.format(i + 1, ['%-.08f' % x for x in xi]))
-        # new pose of keyframe
-        # pass
-    # recompute pose of all image
-    return xi_array, result_array
+    for i, kf_i in enumerate(keyframes):
+        for j in [i-1, i, i+1]:
+            if j < 0:
+                j = (j + len(keyframes))
+            kf_j = keyframes[j]
+            delta, error = relativeError(trans_kf1=kf_i, trans_kf2=kf_j)
+            # t_inverse = inv(se3Exp(delta))
+
+    return kfs, errors
 
 
 def taskE(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):

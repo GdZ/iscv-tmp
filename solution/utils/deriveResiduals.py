@@ -54,3 +54,19 @@ def deriveResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
         Jac[:, j] = (r - residuals) / eps
 
     return Jac, residuals, weights
+
+
+def deriveTransformationNumeric(tref, t, xi):
+    # Jac, residual, weights = [], [], []
+    eps = 1e-6
+    Jac = np.zeros(shape=(I.flatten().shape[0], 6))
+    residuals, weights = calcResiduals(IRef, DRef, I, xi, K, norm_param, use_hubernorm)
+
+    for j in np.arange(6):
+        epsVec = np.zeros([6, 1])
+        epsVec[j] = eps
+        xiPerm = se3Log(se3Exp(epsVec) @ se3Exp(xi))
+        r, w = calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm)
+        Jac[:, j] = (r - residuals) / eps
+
+    return Jac, residuals, weights
