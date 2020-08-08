@@ -106,7 +106,79 @@ def show(fname):
     # plt.show()
 
 
+def tab():
+    input_dir = 'data'
+    output_dir = 'output'
+
+    if os.path.isdir(input_dir):
+        os.listdir(input_dir)
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    # load depth, rgb timestamp
+    t1, rgbs, t2, depths = loadData(input_dir)
+    logD('timestamp: {}, rgb: {}, depth: {}'.format(t1.shape, rgbs.shape, depths.shape))
+    # actual parameter, which is copy from visiom.tum
+    K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+
+    # task (a), (b)
+    delta_x_array, pose_w2kf_array, distance_array = taskAB(K,
+                                                            colors=rgbs,
+                                                            depths=depths,
+                                                            input_dir=input_dir,
+                                                            timestamp_color=t1,
+                                                            timestampe_depth=t2
+                                                            , batch_size=len(rgbs)
+                                                            )
+    if len(pose_w2kf_array) > 0:
+        np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
+        np.save('{}/pose_w2kf_array'.format(output_dir), pose_w2kf_array)
+        np.save('{}/distance_array'.format(output_dir), distance_array)
+        saveData(pose_w2kf_array, outdir=input_dir, fn='estimate_ab_{}.txt'.format(.052))
+
+
+def tc():
+    input_dir = 'data'
+    output_dir = 'output'
+
+    if os.path.isdir(input_dir):
+        os.listdir(input_dir)
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    # load depth, rgb timestamp
+    t1, rgbs, t2, depths = loadData(input_dir)
+    logD('timestamp: {}, rgb: {}, depth: {}'.format(t1.shape, rgbs.shape, depths.shape))
+    # actual parameter, which is copy from visiom.tum
+    K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+
+    # task (c)
+    keyframe_w2kf_array, entropy_array, kf_idx_array = taskC(K,
+                                                             input_dir=input_dir,
+                                                             colors=rgbs,
+                                                             depths=depths,
+                                                             timestamp_color=t1,
+                                                             timestampe_depth=t2,
+                                                             lower=0.91,  # 0.915
+                                                             upper=1.04
+                                                             # , batch_size=len(rgbs)
+                                                             )
+    if len(keyframe_w2kf_array) > 0:
+        np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_w2kf_array)
+        np.save('{}/entropy_array'.format(output_dir), entropy_array)
+        np.save('{}/kf_idx_array'.format(output_dir), kf_idx_array)
+        saveData(keyframe_w2kf_array, outdir=input_dir, fn='estimate_c.txt')
+
+
 if __name__ == '__main__':
-    main(sys.argv[1:])
-    plt.show()
+    # main(sys.argv[1:])
+    # plt.show()
+    import threading
+
+    td1 = threading.Thread(target=tab)
+    td2 = threading.Thread(target=tc)
+    td1.start()
+    td2.start()
     print('finished....')
