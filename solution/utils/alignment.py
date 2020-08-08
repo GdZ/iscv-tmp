@@ -18,15 +18,15 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         norm_param = 0.2
     norm_param = 1e100
 
-    # % set to zero to use Geman-McClure norm
-    # % the initialization of pose
+    # set to zero to use Geman-McClure norm
+    # the initialization of pose
     xi = np.array([[0, 0, 0, 0, 0, 0]]).T
     xi_arr = []
     err_arr = []
     residuals = []
     weights = []
 
-    # % pyramid levels
+    # pyramid levels, but only compute the level-5, which is in order compute quickly
     upper, lower, delta = 5, 4, -1
     for i, scaled_level in enumerate(np.arange(upper, lower, delta)):
         scaled_ref_img, scaled_ref_depth, scaled_rk = downscale(ref_img, ref_depth, k, scaled_level)
@@ -36,29 +36,28 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         N = 20
         err_last = 1e10
         for j in np.arange(N):
-            # % ENABLE ME FOR NUMERIC DERIVATIVES
+            # ENABLE ME FOR NUMERIC DERIVATIVES
             Jac, residual, weight = deriveResidualsNumeric(scaled_ref_img, scaled_ref_depth,
                                                            scaled_img, xi, scaled_rk,
                                                            norm_param, use_hubernorm)
 
-            # % set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
+            # set rows with NaN to 0 (e.g. because out-of-bounds or invalid depth).
             not_valid = np.isnan(np.sum(Jac, axis=1) + residual)
             residual[not_valid] = 0
             Jac[not_valid, :] = 0
             weight[not_valid] = 0
 
-            # % do Gauss-Newton step
+            # do Gauss-Newton step
             weights6 = matlib.repmat(weight.reshape(weight.flatten().size, 1), 1, 6)
             mat = Jac.T.dot(np.multiply(weights6, Jac))
             if np.linalg.det(mat) != 0:
-                # normal inverse
-                # inv = - np.linalg(mat)
                 # use cho_factor to solve the inverse of the matrix
                 c, low = cho_factor(mat)
                 inv = cho_solve((c, low), np.eye(mat.shape[0]))
             else:
                 inv = np.linalg.pinv(mat)
             upd = - inv.dot(Jac.T).dot(np.multiply(weight, residual).reshape(weight.flatten().size, 1))
+
             last_xi = xi
             xi = se3Log(se3Exp(upd) @ se3Exp(xi))
             err = np.mean(residual * residual)
@@ -75,7 +74,7 @@ def doAlignment(ref_img, ref_depth, t_img, t_depth, k):
         # compute entropy
         # Hessian = Jac.T @ Jac
         cov = inv
-        H_xi = 0.5 * np.log(np.linalg.det(2*np.e*np.pi*cov))
-        #H_xi = 0.5 * len(last_xi) * (1 + np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
+        H_xi = 0.5 * np.log(np.linalg.det(2 * np.e * np.pi * cov))
+        # H_xi = 0.5 * len(last_xi) * (1 + np.log(2 * np.pi)) + 0.5 * (np.log(np.linalg.det(cov)))
 
     return xi_arr, err_arr, H_xi

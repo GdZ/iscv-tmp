@@ -57,3 +57,8 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
         # plt.show()
 
     return residuals.flatten(), weights.flatten()
+
+
+def relativeError(trans_kf1, trans_kf2):
+
+    pass
