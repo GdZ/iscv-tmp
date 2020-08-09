@@ -68,7 +68,7 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         trans_dist.append(distance)
         need_kf = need_kf + 1
         # choose one frame from each N frames as keyframe
-        if distance > threshold or need_kf >= 20:
+        if distance > threshold or need_kf >= 15:
             # here just choose the keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -89,7 +89,8 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
         np.save('{}/pose_w2kf_array'.format(output_dir), result_array)
         np.save('{}/distance_array'.format(output_dir), trans_dist)
-        saveData(result_array, outdir=input_dir, fn='estimate_ab_{}.txt'.format(.052))
+        saveData(result_array, outdir=output_dir, fn='kf_estimate_b.txt')
+        saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
     return delta_x_array, result_array, trans_dist
 
 
@@ -133,7 +134,7 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         # entropy ratio, save entropy of all images
         current_rate = H_xi / base_line
         need_kf = need_kf + 1
-        if current_rate < lower or current_rate > upper or need_kf >= 20:
+        if current_rate < lower or current_rate > upper or need_kf >= 15:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -159,7 +160,8 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_array)
         np.save('{}/entropy_array'.format(output_dir), entropy_ratio)
         np.save('{}/kf_idx_array'.format(output_dir), keyframe_idx_array)
-        saveData(keyframe_array, outdir=input_dir, fn='estimate_c.txt')
+        saveData(keyframe_array, outdir=output_dir, fn='kf_estimate_c.txt')
+        saveData(entropy_ratio, outdir=output_dir, fn='alpha_estimate_c.txt')
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
