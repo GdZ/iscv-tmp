@@ -62,5 +62,5 @@ def relativeError(trans_kf1, trans_kf2):
     T1[:3, :3], T1[:3, 3] = r1, t1
     T2[:3, :3], T2[:3, 3] = r2, t2
     delta_t = inv(T1) @ T2
-    error = logm(delta_t @ inv(T1) @ T2)
+    error = se3Log(delta_t @ inv(T1) @ T2)
     return T1, T2, delta_t, error

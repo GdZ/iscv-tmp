@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.linalg import inv
+from matplotlib import pyplot as plt
 
 # self defined function
 from utils.ImageUtils import imReadByGray
@@ -8,6 +9,7 @@ from utils.alignment import doAlignment
 from utils.se3 import se3Exp
 from utils.debug import logD
 from utils.debug import logV
+from utils.ImageUtils import downscale
 from utils.calcResiduals import relativeError
 
 
@@ -30,6 +32,16 @@ def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
             ckf, dkf = c1, d1
+            # save result for (a)
+            # fig = plt.figure(figsize=(12, 6))
+            # for i in np.arange(1, 5):
+            #     si, sd, sk = downscale(c1, d1, K, i)
+            #     plt.subplot(2,4,i)
+            #     plt.imshow(si)
+            #     plt.title('scale level = {}'.format(i))
+            #     plt.subplot(2,4,i+4)
+            #     plt.imshow(sd, cmap='gray')
+            #     plt.title('depth(scale={})'.format(i))
 
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
@@ -137,18 +149,18 @@ def taskD(K, input_dir, keyframes):
         for j in [i - 1, i, i + 1]:
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
-
             kf_j = keyframes[j]
             T1, T2, delta, error = relativeError(trans_kf1=kf_i, trans_kf2=kf_j)
-            # t_inverse = inv(se3Exp(delta))
             d.append(delta)
             e.append(error)
+
         d = np.asarray(d).mean(axis=0)
-        e = np.asarray(e).sum(axis=0)
-        T1 = T1 + e
+        e = np.asarray(e).mean(axis=0)
+        t_inverse = inv(se3Exp(e))
+        T1 = T1 @ t_inverse
         R, t = T1[:3, :3], T1[:3, 3]
         q = Rotation.from_matrix(R).as_quat()
-        kf = np.concatenate(([eval(kf_i[0])], t, q))
+        kf = np.concatenate(([kf_i[0]], t, q))
         kf = [eval('{:08f}'.format(x)) for x in kf]
         kfs.append(kf)
         deltas.append(d)

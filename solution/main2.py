@@ -5,7 +5,7 @@ import sys
 import argparse
 import numpy as np
 from matplotlib import pyplot as plt
-
+import pandas as pd
 # self defined function
 from utils.dataset import loadData
 from utils.ImageUtils import imReadByGray
@@ -63,14 +63,14 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
                                                             timestamp_color=t1,
                                                             timestampe_depth=t2
                                                             , batch_size=len(rgbs)
-                                                            , threshold=0.052
                                                             )
-    np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
-    np.save('{}/pose_w2kf_array'.format(output_dir), pose_w2kf_array)
-    np.save('{}/distance_array'.format(output_dir), distance_array)
-    saveData(pose_w2kf_array, outdir=input_dir, fn='estimate_ab_{}.txt'.format(.052))
+    if len(pose_w2kf_array) > 0:
+        np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
+        np.save('{}/pose_w2kf_array'.format(output_dir), pose_w2kf_array)
+        np.save('{}/distance_array'.format(output_dir), distance_array)
+        saveData(pose_w2kf_array, outdir=input_dir, fn='estimate_ab_{}.txt'.format(.052))
 
-    # task (c)
+    # # task (c)
     keyframe_w2kf_array, entropy_array, kf_idx_array = taskC(K,
                                                              input_dir=input_dir,
                                                              colors=rgbs,
@@ -81,14 +81,16 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
                                                              upper=1.04
                                                              , batch_size=len(rgbs)
                                                              )
-    np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_w2kf_array)
-    np.save('{}/entropy_array'.format(output_dir), entropy_array)
-    np.save('{}/kf_idx_array'.format(output_dir), kf_idx_array)
-    saveData(keyframe_w2kf_array, outdir=input_dir, fn='estimate_c.txt')
+    if len(keyframe_w2kf_array) > 0:
+        np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_w2kf_array)
+        np.save('{}/entropy_array'.format(output_dir), entropy_array)
+        np.save('{}/kf_idx_array'.format(output_dir), kf_idx_array)
+        saveData(keyframe_w2kf_array, outdir=input_dir, fn='estimate_c.txt')
 
     # task (d)
-    keyframe_w2kf_array = np.load('{}/keyframe_w2kf_array.npy'.format(output_dir))
-    kfs, deltas, errors = taskD(K, input_dir, keyframes=keyframe_w2kf_array)
+    # keyframe_w2kf_array = np.load('{}/keyframe_w2kf_array.npy'.format(output_dir))
+    keyframe_w2kf_array = pd.read_csv('{}/estimate_c.txt'.format(input_dir), sep=' ')
+    kfs, deltas, errors = taskD(K, input_dir, keyframes=keyframe_w2kf_array.values[1:])
     if len(kfs) > 0:
         np.save('{}/keyframe_d'.format(output_dir), kfs)
         saveData(kfs, outdir=input_dir, fn='estimate_d.txt')
@@ -129,7 +131,7 @@ def tab():
                                                             input_dir=input_dir,
                                                             timestamp_color=t1,
                                                             timestampe_depth=t2
-                                                            , batch_size=len(rgbs)
+                                                            # , batch_size=len(rgbs)
                                                             )
     if len(pose_w2kf_array) > 0:
         np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
@@ -173,12 +175,12 @@ def tc():
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
-    # plt.show()
-    # import threading
-    #
-    # td1 = threading.Thread(target=tab)
-    # td2 = threading.Thread(target=tc)
-    # td1.start()
-    # td2.start()
+    # main(sys.argv[1:])
+
+    import threading
+    td1 = threading.Thread(target=tab)
+    td2 = threading.Thread(target=tc)
+    td1.start()
+    td2.start()
+
     print('finished....')

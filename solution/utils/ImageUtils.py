@@ -36,7 +36,8 @@ def downscale(o_img, o_depth, K, scaled_level):
         scaled_img = (o_img[0::2, 0::2] + o_img[1::2, 0::2] + o_img[0::2, 1::2] + o_img[1::2, 1::2]) * 0.25
 
         # compute scaled depth-image
-        valid_depth_count = np.sign(o_depth[0::2, 0::2]) + np.sign(o_depth[1::2, 0::2]) + np.sign(o_depth[0::2, 1::2]) + np.sign(o_depth[1::2, 1::2])
+        valid_depth_count = np.sign(o_depth[0::2, 0::2]) + np.sign(o_depth[1::2, 0::2]) \
+                            + np.sign(o_depth[0::2, 1::2]) + np.sign(o_depth[1::2, 1::2])
         merge_depth = o_depth[0::2, 0::2] + o_depth[1::2, 0::2] + o_depth[0::2, 1::2] + o_depth[1::2, 1::2]
         # scaled_depth = np.divide(scaled_depth, valid_depth_count)
         # scaled_depth[np.isnan(scaled_depth)] = 0
