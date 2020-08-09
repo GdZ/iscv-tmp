@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 # self defined function
 from utils.ImageUtils import imReadByGray
 from utils.alignment import doAlignment
+from utils.dataset import saveData
 from utils.se3 import se3Exp
 from utils.debug import logD
 from utils.debug import logV
@@ -13,9 +14,8 @@ from utils.ImageUtils import downscale
 from utils.calcResiduals import relativeError
 
 
-def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
-           input_dir='./data', epoch_size=9, batch_size=500, threshold=0.052):
-    timestamp = timestamp_color
+def taskAB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=0.052):
+    timestamp = t1
     result_array, delta_x_array = [], []
     delta_xs_epoch, results_epoch = [], []
     trans_dist = []
@@ -73,12 +73,16 @@ def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
 
         logV('pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format(i, idx_kf, distance, ['%-.08f' % x for x in result]))
 
+    if len(result_array) > 0:
+        np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
+        np.save('{}/pose_w2kf_array'.format(output_dir), result_array)
+        np.save('{}/distance_array'.format(output_dir), trans_dist)
+        saveData(result_array, outdir=input_dir, fn='estimate_ab_{}.txt'.format(.052))
     return delta_x_array, result_array, trans_dist
 
 
-def taskC(K, colors, depths, timestamp_color, timestampe_depth,
-          input_dir='./data', epoch_size=9, batch_size=500, lower=.9, upper=1.1):
-    timestamp = timestamp_color
+def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, lower=.9, upper=1.1):
+    timestamp = t1
     keyframe_array, xi_array = [], []
     entropy_ratio, keyframe_idx_array = [], []
 
@@ -138,6 +142,11 @@ def taskC(K, colors, depths, timestamp_color, timestampe_depth,
         entropy_ratio.append(current_rate)
         logV('entropy of ({:04d} -> {:04d}) = {}'.format(i, key_frame_index, current_rate))
 
+    if len(keyframe_array) > 0:
+        np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_array)
+        np.save('{}/entropy_array'.format(output_dir), entropy_ratio)
+        np.save('{}/kf_idx_array'.format(output_dir), keyframe_idx_array)
+        saveData(keyframe_array, outdir=input_dir, fn='estimate_c.txt')
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
