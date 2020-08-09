@@ -151,7 +151,7 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
             kf = [eval('%-.08f' % x) for x in tmp]
             keyframe_array.append(kf)
             need_kf = 0
-            logD('{:04d} -> idx_kf: {} result: {}'.format(i, key_frame_index, kf))
+            logV('{} | ({:04d} -> {}) result: {}'.format('taskC', i, key_frame_index, kf))
 
         entropy_ratio.append(current_rate)
         logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('taskC', i, key_frame_index, current_rate))
