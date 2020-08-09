@@ -54,7 +54,7 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
 
     # parallel running task
     # (b)
-    # batch_size = 500
+    batch_size = 500
     batch_size = len(rgbs)
     td1 = threading.Thread(target=taskB, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.052))
     td1.start()
