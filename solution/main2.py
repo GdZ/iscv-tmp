@@ -88,7 +88,7 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
 
     # task (d)
     keyframe_w2kf_array = np.load('{}/keyframe_w2kf_array.npy'.format(output_dir))
-    kfs, errors = taskD(K, input_dir, keyframes=keyframe_w2kf_array)
+    kfs, deltas, errors = taskD(K, input_dir, keyframes=keyframe_w2kf_array)
     if len(kfs) > 0:
         np.save('{}/keyframe_d'.format(output_dir), kfs)
         saveData(kfs, outdir=input_dir, fn='estimate_d.txt')
@@ -173,12 +173,12 @@ def tc():
 
 
 if __name__ == '__main__':
-    # main(sys.argv[1:])
+    main(sys.argv[1:])
     # plt.show()
-    import threading
-
-    td1 = threading.Thread(target=tab)
-    td2 = threading.Thread(target=tc)
-    td1.start()
-    td2.start()
+    # import threading
+    #
+    # td1 = threading.Thread(target=tab)
+    # td2 = threading.Thread(target=tc)
+    # td1.start()
+    # td2.start()
     print('finished....')

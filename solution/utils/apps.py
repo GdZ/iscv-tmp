@@ -1,4 +1,3 @@
-#! -*- coding: utf-8 -*-
 import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.linalg import inv
@@ -13,7 +12,7 @@ from utils.calcResiduals import relativeError
 
 
 def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
-           input_dir='./data', epoch_size=9, batch_size=200, threshold=0.052):
+           input_dir='./data', epoch_size=9, batch_size=500, threshold=0.052):
     timestamp = timestamp_color
     result_array, delta_x_array = [], []
     delta_xs_epoch, results_epoch = [], []
@@ -66,7 +65,7 @@ def taskAB(K, colors, depths, timestamp_color, timestampe_depth,
 
 
 def taskC(K, colors, depths, timestamp_color, timestampe_depth,
-          input_dir='./data', epoch_size=9, batch_size=200, lower=.9, upper=1.1):
+          input_dir='./data', epoch_size=9, batch_size=500, lower=.9, upper=1.1):
     timestamp = timestamp_color
     keyframe_array, xi_array = [], []
     entropy_ratio, keyframe_idx_array = [], []
@@ -120,7 +119,7 @@ def taskC(K, colors, depths, timestamp_color, timestampe_depth,
             t = last_keyframe_pose[:3, 3]  # t
             q = Rotation.from_matrix(R).as_quat()
             tmp = np.concatenate(([timestamp[i]], t, q))
-            kf = ['%-.08f' % x for x in tmp]
+            kf = [eval('%-.08f' % x) for x in tmp]
             keyframe_array.append(kf)
             logV('{:04d} -> idx_kf: {} result: {}'.format(i, key_frame_index, kf))
 
@@ -131,17 +130,31 @@ def taskC(K, colors, depths, timestamp_color, timestampe_depth,
 
 
 def taskD(K, input_dir, keyframes):
-    kfs, errors = [], []
+    kfs, deltas, errors = [], [], []
     # (d) optimization of keyframe pose
     for i, kf_i in enumerate(keyframes):
-        for j in [i-1, i, i+1]:
-            if j < 0:
-                j = (j + len(keyframes))
-            kf_j = keyframes[j]
-            delta, error = relativeError(trans_kf1=kf_i, trans_kf2=kf_j)
-            # t_inverse = inv(se3Exp(delta))
+        d, e = [], []
+        for j in [i - 1, i, i + 1]:
+            if j < 0 or j > len(keyframes) - 1:
+                j = (j + len(keyframes)) % len(keyframes)
 
-    return kfs, errors
+            kf_j = keyframes[j]
+            T1, T2, delta, error = relativeError(trans_kf1=kf_i, trans_kf2=kf_j)
+            # t_inverse = inv(se3Exp(delta))
+            d.append(delta)
+            e.append(error)
+        d = np.asarray(d).mean(axis=0)
+        e = np.asarray(e).sum(axis=0)
+        T1 = T1 + e
+        R, t = T1[:3, :3], T1[:3, 3]
+        q = Rotation.from_matrix(R).as_quat()
+        kf = np.concatenate(([eval(kf_i[0])], t, q))
+        kf = [eval('{:08f}'.format(x)) for x in kf]
+        kfs.append(kf)
+        deltas.append(d)
+        errors.append(e)
+
+    return kfs, deltas, errors
 
 
 def taskE(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
@@ -151,4 +164,3 @@ def taskE(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
 def translation_distance(relative_pose):
     t = relative_pose[:3, 3]
     return np.sqrt((np.sum(t ** 2)))
-

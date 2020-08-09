@@ -180,7 +180,7 @@ if __name__=="__main__":
         fig = plt.figure()
         ax = fig.add_subplot(111)
         plot_traj(ax,first_stamps,first_xyz_full.transpose().A,'-',"black","ground truth")
-        plot_traj(ax,second_stamps,second_xyz_full_aligned.transpose().A,'-',"blue","estimated")
+        plot_traj(ax,second_stamps,second_xyz_full_aligned.transpose().A,'o-',"blue","estimated")
 
         label="difference"
         for (a,b),(x1,y1,z1),(x2,y2,z2) in zip(matches,first_xyz.transpose().A,second_xyz_aligned.transpose().A):
