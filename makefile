@@ -12,17 +12,18 @@ associate:
 evaluate: evaluate_rpe evaluate_ate
 
 evaluate_ate:
-	python2 solution/evaluate_ate.py solution/data/groundtruth.txt solution/data/estimate_ab.txt  --plot solution/output/figure-ab-0.052-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
-	python2 solution/evaluate_ate.py solution/data/groundtruth.txt solution/data/estimate_ab_0.052.txt  --plot solution/output/figure-ab-0.052-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
-	python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/data/estimate_c.txt  --plot solution/output/figure-c-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
-	python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/data/estimate_d.txt  --plot solution/output/figure-d-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
-	#python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/data/estimate_e.txt  --plot solution/output/figure-e-$(shell date +"%Y%m%d.%H%M%M").png --offset 0 --scale 1 --verbose
+	#python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/data/freiburg2_desk-rgbdslam.txt  --plot solution/output/figure-slam.png --offset 0 --scale 1 --verbose
+	python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/output/kf_estimate_b.txt  --plot solution/output/figure-b.png --offset 0 --scale 1 --verbose
+	python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/output/kf_estimate_c.txt  --plot solution/output/build/figure-c.png --offset 0 --scale 1 --verbose
+	#python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/output/kf_estimate_d.txt  --plot solution/output/figure-d.png --offset 0 --scale 1 --verbose
+	#python2 solution/evaluate_ate_v2.py solution/data/groundtruth.txt solution/output/kf_estimate_e.txt  --plot solution/output/figure-e.png --offset 0 --scale 1 --verbose
 
 evaluate_rpe:
 	#python2 solution/evaluate_rpe.py 'solution/data/groundtruth.txt' 'solution/data/freiburg2_desk-rgbdslam.txt'
-	python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/data/estimate_ab_0.052.txt
-	python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/data/estimate_ab.txt
-	python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/data/estimate_c.txt
+	python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/output/kf_estimate_b.txt
+	python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/output/kf_estimate_c.txt
+	#python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/output/kf_estimate_d.txt
+	#python2 solution/evaluate_rpe.py solution/data/groundtruth.txt solution/output/kf_estimate_e.txt
 
 download:
 	mkdir -p solution
