@@ -14,7 +14,7 @@ from utils.ImageUtils import imReadByGray
 from utils.dataset import saveData
 from utils.debug import logD
 from utils.debug import logV
-from utils.apps import taskAB, taskC, taskD, taskE
+from utils.apps import taskB, taskC, taskD, taskE
 
 
 def main(argv):
@@ -54,10 +54,12 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
 
     # parallel running task
     # (b)
-    td1 = threading.Thread(target=taskAB, args=(K, rgbs, depths, t1, input_dir, output_dir, 500, 0.052))
+    # batch_size = 500
+    batch_size = len(rgbs)
+    td1 = threading.Thread(target=taskB, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.052))
     td1.start()
     # (c)
-    td2 = threading.Thread(target=taskC, args=(K, rgbs, depths, t1, input_dir, output_dir, 500, .9, 1.1))
+    td2 = threading.Thread(target=taskC, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, .9, 1.1))
     td2.start()
 
 
@@ -75,15 +77,14 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     os.mkdir(output_dir)
 
     # task (a), (b)
-    delta_x_array, pose_w2kf_array, distance_array = taskAB(K,
-                                                            colors=rgbs,
-                                                            depths=depths,
-                                                            input_dir=input_dir,
-                                                            output_dir=output_dir,
-                                                            t1=t1,
-                                                            timestampe_depth=t2
-                                                            , batch_size=len(rgbs)
-                                                            )
+    delta_x_array, pose_w2kf_array, distance_array = taskB(K,
+                                                           colors=rgbs,
+                                                           depths=depths,
+                                                           input_dir=input_dir,
+                                                           output_dir=output_dir,
+                                                           t1=t1
+                                                           , batch_size=len(rgbs)
+                                                           )
     if len(pose_w2kf_array) > 0:
         np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
         np.save('{}/pose_w2kf_array'.format(output_dir), pose_w2kf_array)
@@ -97,7 +98,6 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
                                                              colors=rgbs,
                                                              depths=depths,
                                                              t1=t1,
-                                                             timestampe_depth=t2,
                                                              lower=0.91,  # 0.915
                                                              upper=1.04
                                                              , batch_size=len(rgbs)
@@ -132,4 +132,4 @@ def show(fname):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
-    print('finished....')
+    logV('finished....')

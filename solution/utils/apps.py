@@ -14,13 +14,33 @@ from utils.ImageUtils import downscale
 from utils.calcResiduals import relativeError
 
 
-def taskAB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=0.052):
+def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
+    # save result for (a)
+    i = np.random.randint(0, high=len(colors) - 1)
+    c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
+    d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+    # draw figure
+    fig = plt.figure(figsize=(12, 6))
+    plt.title(t1[i])
+    for i in np.arange(1, 5):
+        si, sd, sk = downscale(c1, d1, K, i)
+        plt.subplot(2, 4, i)
+        plt.imshow(si)
+        plt.title('scale level = {}'.format(i))
+        plt.subplot(2, 4, i + 4)
+        plt.imshow(sd, cmap='gray')
+        plt.title('depth(scale={})'.format(i))
+    fig.savefig('{}/downscale-a.png'.format(output_dir))
+    logV('taskA is finished.....')
+
+
+def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=0.052):
     timestamp = t1
     result_array, delta_x_array = [], []
     delta_xs_epoch, results_epoch = [], []
     trans_dist = []
 
-    start, idx_kf = 0, 0
+    start, idx_kf, need_kf = 0, 0, 0
     for i in np.arange(start, batch_size):
         if i == 0:
             # initial result
@@ -32,16 +52,6 @@ def taskAB(K, colors, depths, t1, input_dir='./data', output_dir='./output', bat
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
             ckf, dkf = c1, d1
-            # save result for (a)
-            # fig = plt.figure(figsize=(12, 6))
-            # for i in np.arange(1, 5):
-            #     si, sd, sk = downscale(c1, d1, K, i)
-            #     plt.subplot(2,4,i)
-            #     plt.imshow(si)
-            #     plt.title('scale level = {}'.format(i))
-            #     plt.subplot(2,4,i+4)
-            #     plt.imshow(sd, cmap='gray')
-            #     plt.title('depth(scale={})'.format(i))
 
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
@@ -50,28 +60,30 @@ def taskAB(K, colors, depths, t1, input_dir='./data', output_dir='./output', bat
         xi = xis[-1]
         delta_xs_epoch.append(xi)
         delta_x_array.append(xi)
-        # logV('{:04d} -> xi: {}'.format(i + 1, ['%-.08f' % x for x in xi]))
+        logD('{} | {:04d} -> xi: {}'.format('taskB', i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
         distance = translation_distance(t_inverse)
         trans_dist.append(distance)
+        need_kf = need_kf + 1
         # choose one frame from each N frames as keyframe
-        if distance > threshold:
+        if distance > threshold or need_kf >= 20:
             # here just choose the keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
             idx_kf = i
+            need_kf = 0
 
         current_frame_pose = last_keyframe_pose @ t_inverse
         R = current_frame_pose[:3, :3]  # rotation matrix
         t = current_frame_pose[:3, 3]  # t
         q = Rotation.from_matrix(R).as_quat()
         result = np.concatenate(([timestamp[i]], t, q))
-        results_epoch.append([eval('%-.08f' % x) for x in result])
-        result_array.append([eval('%-.08f' % x) for x in result])
-
-        logV('pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format(i, idx_kf, distance, ['%-.08f' % x for x in result]))
+        result = [eval('%.08f' % x) for x in result]
+        results_epoch.append(result)
+        result_array.append(result)
+        logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('taskB', i, idx_kf, distance, result))
 
     if len(result_array) > 0:
         np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
@@ -86,14 +98,13 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
     keyframe_array, xi_array = [], []
     entropy_ratio, keyframe_idx_array = [], []
 
-    start = 0
+    start, need_kf = 0, 0
     for i in np.arange(start, batch_size):
         if i == 0:
             # initial result
             tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
             keyframe_array.append(['%-.06f' % x for x in tmp])
             # world-frame initial pose
-            pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
@@ -121,7 +132,8 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
 
         # entropy ratio, save entropy of all images
         current_rate = H_xi / base_line
-        if current_rate < lower or current_rate > upper:
+        need_kf = need_kf + 1
+        if current_rate < lower or current_rate > upper or need_kf >= 20:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
@@ -137,10 +149,11 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
             tmp = np.concatenate(([timestamp[i]], t, q))
             kf = [eval('%-.08f' % x) for x in tmp]
             keyframe_array.append(kf)
-            logV('{:04d} -> idx_kf: {} result: {}'.format(i, key_frame_index, kf))
+            need_kf = 0
+            logD('{:04d} -> idx_kf: {} result: {}'.format(i, key_frame_index, kf))
 
         entropy_ratio.append(current_rate)
-        logV('entropy of ({:04d} -> {:04d}) = {}'.format(i, key_frame_index, current_rate))
+        logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('taskC', i, key_frame_index, current_rate))
 
     if len(keyframe_array) > 0:
         np.save('{}/keyframe_w2kf_array'.format(output_dir), keyframe_array)
@@ -178,7 +191,7 @@ def taskD(K, input_dir, keyframes):
     return kfs, deltas, errors
 
 
-def taskE(K, input_dir, keyframes_color, keyframes_depth, timestamp_color):
+def taskE(K, input_dir, output_dir, kf, rgb, depth, t1):
     pass
 
 
