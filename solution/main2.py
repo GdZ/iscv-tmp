@@ -1,5 +1,6 @@
 #! -*- coding: utf-8 -*-
 # !/bin/env python
+import time
 import os
 import sys
 import argparse
@@ -54,6 +55,8 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     """
     # actual parameter, which is copy from visiom.tum
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
+    output_dir = '{}/{}'.format(output_dir, time.time())
+    os.mkdir(output_dir)
 
     # task (a), (b)
     delta_x_array, pose_w2kf_array, distance_array = taskAB(K,
