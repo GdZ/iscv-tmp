@@ -3,6 +3,7 @@
 import time
 import os
 import sys
+from shutil import copy2
 import argparse
 import threading
 import numpy as np
@@ -51,6 +52,7 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
     output_dir = '{}/{}'.format(output_dir, time.time())
     os.mkdir(output_dir)
+    prepare(output_dir)
 
     # parallel running task
     # (b)
@@ -128,6 +130,15 @@ def show(fname):
     im = imReadByGray(file_path=fname)
     plt.imshow(im, cmap='gray')
     # plt.show()
+
+
+def prepare(output_dir):
+    copy2('solution/output/makefile', '{}/makefile'.format(output_dir))
+    copy2('solution/output/associate.py', '{}/associate.py'.format(output_dir))
+    copy2('solution/output/evaluate_ate_v1.py', '{}/evaluate_ate_v1.py'.format(output_dir))
+    copy2('solution/output/evaluate_ate_v2.py', '{}/evaluate_ate_v2.py'.format(output_dir))
+    copy2('solution/output/evaluate_rpe.py', '{}/evaluate_rpe.py'.format(output_dir))
+    copy2('solution/output/groundtruth.txt', '{}/groundtruth.txt'.format(output_dir))
 
 
 if __name__ == '__main__':
