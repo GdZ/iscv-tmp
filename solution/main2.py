@@ -82,7 +82,7 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     # task (d)
     kf_idx = np.load('{}/kf_idx.npy'.format(output_dir))
     kf_estimate_c = np.load('{}/kf_estimate_c.npy'.format(output_dir))
-    kfs, deltas, errors = taskD(K, input_dir, keyframes=kf_estimate_c, kf_idx=kf_idx)
+    kfs, deltas, errors = taskD(K, input_dir, keyframes=kf_estimate_c, kf_idx=kf_idx, rgbs=rgbs, depths=depths, t1=t1)
     if len(kfs) > 0:
         np.save('{}/keyframe_d'.format(output_dir), kfs)
         saveData(kfs, outdir=input_dir, fn='estimate_d.txt')

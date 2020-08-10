@@ -236,20 +236,23 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
     return kf_estimate, entropy_ratio, kf_idx
 
 
-def taskD(K, input_dir, keyframes, kf_idx):
+def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
     kfs, deltas, errors = [], [], []
     # (d) optimization of keyframe pose
-    for i, kf_i in enumerate(keyframes):
+    for i, kf_i, idx in enumerate(zip(keyframes, kf_idx)):
         d, e = [], []
         for j in [i - 1, i, i + 1]:
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
             kf_j = keyframes[j]
-            T1, T2, delta, error = relativeError(trans_kf1=kf_i, trans_kf2=kf_j)
-            d.append(delta)
+            xis, errors, _ = doAlignment(ref_img=rgbs[idx], ref_depth=depths[idx], t_img=rgbs[kf_idx[j]], t_depth=depths[kf_idx[j]], k=K)
+            kf_pose = np.identity(4)
+            t_inverse = inv(se3Exp(xis[-1]))
+            kf = kf_pose @ t_inverse
+            T1, T2, _, error = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+            # d.append(delta)
             e.append(error)
-
-        d = np.asarray(d).mean(axis=0)
+        # d = np.asarray(d).mean(axis=0)
         e = np.asarray(e).mean(axis=0)
         t_inverse = inv(se3Exp(e))
         T1 = T1 @ t_inverse

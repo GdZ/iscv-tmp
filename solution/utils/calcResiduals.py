@@ -52,15 +52,15 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     return residuals.flatten(), weights.flatten()
 
 
-def relativeError(trans_kf1, trans_kf2):
-    t1, q1 = trans_kf1[1:4], trans_kf1[4:]
+def relativeError(kf_ref, kf, delta):
+    t1, q1 = kf_ref[1:4], kf_ref[4:]
     r1 = Rotation.from_quat(q1).as_matrix()
-    t2, q2 = trans_kf2[1:4], trans_kf2[4:]
+    t2, q2 = kf[1:4], kf[4:]
     r2 = Rotation.from_quat(q2).as_matrix()
     T1, T2 = np.zeros(shape=(4,4)), np.zeros(shape=(4,4))
     T1[3,3], T2[3,3] = 1, 1
     T1[:3, :3], T1[:3, 3] = r1, t1
     T2[:3, :3], T2[:3, 3] = r2, t2
     delta_t = inv(T1) @ T2
-    error = se3Log(delta_t @ inv(T1) @ T2)
+    error = se3Log(delta_t @ delta)
     return T1, T2, delta_t, error
