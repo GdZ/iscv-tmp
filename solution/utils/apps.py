@@ -34,6 +34,66 @@ def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
     logV('taskA is finished.....')
 
 
+def taskB0(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=0.052):
+    timestamp = t1
+    result_array, delta_x_array = [], []
+    delta_xs_epoch, results_epoch = [], []
+    trans_dist = []
+
+    start, idx_kf, need_kf = 0, 0, 0
+    for i in np.arange(start, batch_size):
+        if i == 0:
+            # initial result
+            tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
+            results_epoch.append(['%-.06f' % x for x in tmp])
+            # world-frame initial pose
+            pw = np.array([0, 0, 0, 1])
+            last_keyframe_pose = np.identity(4)
+            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
+            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+            ckf, dkf = c1, d1
+
+        # compute the reference frame with the keyframe
+        c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
+        d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
+        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xi = xis[-1]
+        delta_xs_epoch.append(xi)
+        delta_x_array.append(xi)
+        logD('{} | {:04d} -> xi: {}'.format('taskB', i + 1, ['%-.08f' % x for x in xi]))
+
+        # compute relative transform matrix
+        t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
+        distance = translation_distance(t_inverse)
+        trans_dist.append(distance)
+        need_kf = need_kf + 1
+        # choose one frame from each N frames as keyframe
+        if i % 9 == 0:
+            # here just choose the keyframe
+            last_keyframe_pose = last_keyframe_pose @ t_inverse
+            ckf, dkf = c2, d2
+            idx_kf = i
+            need_kf = 0
+
+        current_frame_pose = last_keyframe_pose @ t_inverse
+        R = current_frame_pose[:3, :3]  # rotation matrix
+        t = current_frame_pose[:3, 3]  # t
+        q = Rotation.from_matrix(R).as_quat()
+        result = np.concatenate(([timestamp[i]], t, q))
+        result = [eval('%.08f' % x) for x in result]
+        results_epoch.append(result)
+        result_array.append(result)
+        logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('taskB', i, idx_kf, distance, result))
+
+    if len(result_array) > 0:
+        np.save('{}/delta_xs_array'.format(output_dir), delta_x_array)
+        np.save('{}/pose_w2kf_array'.format(output_dir), result_array)
+        np.save('{}/distance_array'.format(output_dir), trans_dist)
+        saveData(result_array, outdir=output_dir, fn='kf_estimate_b.txt')
+        # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
+    return delta_x_array, result_array, trans_dist
+
+
 def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=0.052):
     timestamp = t1
     result_array, delta_x_array = [], []
