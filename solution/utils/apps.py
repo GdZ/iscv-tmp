@@ -90,7 +90,7 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         np.save('{}/pose_w2kf_array'.format(output_dir), result_array)
         np.save('{}/distance_array'.format(output_dir), trans_dist)
         saveData(result_array, outdir=output_dir, fn='kf_estimate_b.txt')
-        saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
+        # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
     return delta_x_array, result_array, trans_dist
 
 
@@ -161,7 +161,7 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         np.save('{}/entropy_array'.format(output_dir), entropy_ratio)
         np.save('{}/kf_idx_array'.format(output_dir), keyframe_idx_array)
         saveData(keyframe_array, outdir=output_dir, fn='kf_estimate_c.txt')
-        saveData(entropy_ratio, outdir=output_dir, fn='alpha_estimate_c.txt')
+        # saveData(entropy_ratio, outdir=output_dir, fn='alpha_estimate_c.txt')
     return keyframe_array, entropy_ratio, keyframe_idx_array
 
 
