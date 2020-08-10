@@ -61,11 +61,12 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
     td0 = threading.Thread(target=taskB0, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.052))
     td0.start()
 
-    # td1 = threading.Thread(target=taskB, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.052))
-    # td1.start()
-    # # (c)
-    # td2 = threading.Thread(target=taskC, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, .9, 1.1))
-    # td2.start()
+    td1 = threading.Thread(target=taskB, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.052))
+    td1.start()
+
+    # (c)
+    td2 = threading.Thread(target=taskC, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, .9, 1.1))
+    td2.start()
 
 
 def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
