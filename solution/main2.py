@@ -3,7 +3,7 @@
 import time
 import os
 import sys
-from shutil import copy2
+from shutil import copy2, copyfile, copy
 import argparse
 import threading
 import numpy as np
@@ -133,12 +133,14 @@ def show(fname):
 
 
 def prepare(output_dir):
-    copy2('solution/output/makefile', '{}/makefile'.format(output_dir))
-    copy2('solution/output/associate.py', '{}/associate.py'.format(output_dir))
-    copy2('solution/output/evaluate_ate_v1.py', '{}/evaluate_ate_v1.py'.format(output_dir))
-    copy2('solution/output/evaluate_ate_v2.py', '{}/evaluate_ate_v2.py'.format(output_dir))
-    copy2('solution/output/evaluate_rpe.py', '{}/evaluate_rpe.py'.format(output_dir))
-    copy2('solution/output/groundtruth.txt', '{}/groundtruth.txt'.format(output_dir))
+    # logV(os.listdir())
+    # logV(os.listdir(output_dir))
+    copy('{}/../makefile'.format(output_dir), output_dir)
+    copy('{}/../associate.py'.format(output_dir), output_dir)
+    copy('{}/../evaluate_ate_v1.py'.format(output_dir), output_dir)
+    copy('{}/../evaluate_ate_v2.py'.format(output_dir), output_dir)
+    copy('{}/../evaluate_rpe.py'.format(output_dir), output_dir)
+    copy('{}/../groundtruth.txt'.format(output_dir), output_dir)
 
 
 if __name__ == '__main__':
