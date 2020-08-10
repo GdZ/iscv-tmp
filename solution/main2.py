@@ -15,7 +15,7 @@ from utils.ImageUtils import imReadByGray
 from utils.dataset import saveData
 from utils.debug import logD
 from utils.debug import logV
-from utils.apps import taskB, taskB0, taskC, taskD, taskE
+from utils.apps import method02, method01, method03, taskD, taskE
 
 
 def main(argv):
@@ -58,12 +58,11 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
     # (b)
     batch_size = 100
     # batch_size = len(rgbs)
-    td0 = threading.Thread(target=taskB0, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size))
+    td0 = threading.Thread(target=method01, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size))
     td0.start()
-    td1 = threading.Thread(target=taskB, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.12, 0.12))
+    td1 = threading.Thread(target=method02, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.12, 0.12))
     td1.start()
-    # (c)
-    td2 = threading.Thread(target=taskC, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, .9))
+    td2 = threading.Thread(target=method03, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, .9))
     td2.start()
     # (d), (e)
     # alignment(input_dir, output_dir, t1=t1, rgbs=rgbs, t2=t2, depths=depths)

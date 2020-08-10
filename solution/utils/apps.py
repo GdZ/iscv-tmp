@@ -34,7 +34,7 @@ def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
     logV('taskA is finished.....')
 
 
-def taskB0(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500):
+def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500):
     timestamp = t1
     pose_estimate, kf_estimate, delta_xs = [], [], []
     delta_xs_epoch, results_epoch = [], []
@@ -60,7 +60,7 @@ def taskB0(K, colors, depths, t1, input_dir='./data', output_dir='./output', bat
         xi = xis[-1]
         delta_xs_epoch.append(xi)
         delta_xs.append(xi)
-        logD('{} | {:04d} -> xi: {}'.format('taskB0', i + 1, ['%-.08f' % x for x in xi]))
+        logD('{} | {:04d} -> xi: {}'.format('method01', i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
@@ -86,21 +86,21 @@ def taskB0(K, colors, depths, t1, input_dir='./data', output_dir='./output', bat
         result = [eval('%.08f' % x) for x in result]
         results_epoch.append(result)
         pose_estimate.append(result)
-        logV('{} | pose({:04d} -> {:04d}) =\n\t{}'.format('taskB0', i, idx_kf, result))
+        logV('{} | pose({:04d} -> {:04d}) =\n\t{}'.format('method-01', i, idx_kf, result))
 
     if len(pose_estimate) > 0:
         np.save('{}/delta_xs'.format(output_dir), delta_xs)
-        np.save('{}/pose_estimate_b0'.format(output_dir), pose_estimate)
-        np.save('{}/kf_estimate_b0'.format(output_dir), kf_estimate)
+        np.save('{}/pose_estimate_1'.format(output_dir), pose_estimate)
+        np.save('{}/kf_estimate_1'.format(output_dir), kf_estimate)
         np.save('{}/distance_trans'.format(output_dir), distance_trans)
         saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_b0.txt')
         # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
     return delta_xs, pose_estimate, distance_trans
 
 
-def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, d=0.052, a=0.012):
+def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, d=0.052, a=0.012):
     timestamp = t1
-    pose_estimate, delta_xs = [], []
+    pose_estimate, kf_estimate, delta_xs = [], [], []
     delta_xs_epoch, results_epoch = [], []
     distance_trans = []
 
@@ -124,7 +124,7 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         xi = xis[-1]
         delta_xs_epoch.append(xi)
         delta_xs.append(xi)
-        logD('{} | {:04d} -> xi: {}'.format('taskB', i + 1, ['%-.08f' % x for x in xi]))
+        logD('{} | {:04d} -> xi: {}'.format('method-02', i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
@@ -138,6 +138,12 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
             ckf, dkf = c2, d2
             idx_kf = i
             need_kf = 0
+            kf_R = last_keyframe_pose[:3, :3]  # rotation matrix
+            kf_t = last_keyframe_pose[:3, 3]  # t
+            kf_q = Rotation.from_matrix(kf_R).as_quat()
+            tmp = np.concatenate(([timestamp[i]], kf_t, kf_q))
+            tmp = [eval('%.08f' % x) for x in tmp]
+            kf_estimate.append(tmp)
 
         current_frame_pose = last_keyframe_pose @ t_inverse
         R = current_frame_pose[:3, :3]  # rotation matrix
@@ -147,18 +153,19 @@ def taskB(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
         result = [eval('%.08f' % x) for x in result]
         results_epoch.append(result)
         pose_estimate.append(result)
-        logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('taskB', i, idx_kf, distance, result))
+        logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('method-02', i, idx_kf, distance, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs_array'.format(output_dir), delta_xs)
-        np.save('{}/pose_estimate_b'.format(output_dir), pose_estimate)
+        np.save('{}/delta_xs_2'.format(output_dir), delta_xs)
+        np.save('{}/pose_estimate_2'.format(output_dir), pose_estimate)
+        np.save('{}/kf_estimate_2'.format(output_dir), kf_estimate)
         np.save('{}/distance_trans'.format(output_dir), distance_trans)
-        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_b.txt')
+        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2.txt')
         # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
     return delta_xs, pose_estimate, distance_trans
 
 
-def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=.9):
+def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=.9):
     timestamp = t1
     kf_estimate, xi_array = [], []
     entropy_ratio, kf_idx = [], []
@@ -215,16 +222,16 @@ def taskC(K, colors, depths, t1, input_dir='./data', output_dir='./output', batc
             kf = [eval('%-.08f' % x) for x in tmp]
             kf_estimate.append(kf)
             need_kf = 0
-            logV('{} | ({:04d} -> {}) result: {}'.format('taskC', i, key_frame_index, kf))
+            logV('{} | ({:04d} -> {}) result: {}'.format('method-03', i, key_frame_index, kf))
 
         entropy_ratio.append(current_rate)
-        logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('taskC', i, key_frame_index, current_rate))
+        logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('method-03', i, key_frame_index, current_rate))
 
     if len(kf_estimate) > 0:
-        np.save('{}/kf_estimate_c'.format(output_dir), kf_estimate)
+        np.save('{}/kf_estimate_3'.format(output_dir), kf_estimate)
         np.save('{}/entropy_rate'.format(output_dir), entropy_ratio)
         np.save('{}/kf_idx'.format(output_dir), kf_idx)
-        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_c.txt')
+        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3.txt')
         # saveData(entropy_ratio, outdir=output_dir, fn='alpha_estimate_c.txt')
     return kf_estimate, entropy_ratio, kf_idx
 
