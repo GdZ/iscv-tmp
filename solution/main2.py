@@ -3,12 +3,11 @@
 import time
 import os
 import sys
-from shutil import copy2, copyfile, copy
+from shutil import copy
 import argparse
 import threading
 import numpy as np
 from matplotlib import pyplot as plt
-import pandas as pd
 # self defined function
 from utils.dataset import loadData
 from utils.ImageUtils import imReadByGray
@@ -58,7 +57,7 @@ def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
     # (b)
     # batch_size, lvl = 20, 5
     batch_size = len(rgbs)
-    for lvl in np.arange(5, 0, -1):
+    for i, lvl in enumerate(np.arange(5, 0, -2)):
         td0 = threading.Thread(target=method01, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, lvl))
         td0.start()
         td1 = threading.Thread(target=method02, args=(K, rgbs, depths, t1, input_dir, output_dir, batch_size, 0.12, 0.12, lvl))
