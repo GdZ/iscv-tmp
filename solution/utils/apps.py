@@ -36,7 +36,7 @@ def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
     logV('taskA is finished.....')
 
 
-def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500):
+def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, lvl=5):
     timestamp = t1
     pose_estimate, kf_estimate, distance_trans, delta_xi = [], [], [], []
     start, idx_kf, need_kf = 0, 0, 0
@@ -51,7 +51,8 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2,
+                                    k=K, scaled_level=lvl)
         delta_xi.append(xi)
         logD('{} | {:04d} -> xi: {}'.format('method-01', i + 1, ['%-.08f' % x for x in xi]))
 
@@ -81,15 +82,17 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         logV('{} | pose({:04d} -> {:04d}) =\n\t{}'.format('method-01', i, idx_kf, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs'.format(output_dir), delta_xi)
-        np.save('{}/pose_estimate_1'.format(output_dir), pose_estimate)
-        np.save('{}/kf_estimate_1'.format(output_dir), kf_estimate)
-        np.save('{}/distance_trans'.format(output_dir), distance_trans)
-        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_b0.txt')
+        np.save('{}/delta_xs_lvl-{}'.format(output_dir, lvl), delta_xi)
+        np.save('{}/pose_estimate_1_lvl-{}'.format(output_dir, lvl), pose_estimate)
+        np.save('{}/kf_estimate_1_lvl-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/distance_trans_lvl-{}'.format(output_dir, lvl), distance_trans)
+        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_1_lvl{}.txt'.format(lvl))
+        saveData(pose_estimate, outdir=output_dir, fn='kf_estimate_1_lvl{}.txt'.format(lvl))
     return delta_xi, pose_estimate, distance_trans
 
 
-def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, d=0.052, a=0.012):
+def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output',
+             batch_size=500, d=0.052, a=0.012, lvl=5):
     timestamp = t1
     pose_estimate, kf_estimate, delta_xi = [], [], []
     distance_trans = []
@@ -105,7 +108,8 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2,
+                                    k=K, scaled_level=lvl)
         delta_xi.append(xi)
         logD('{} | {:04d} -> xi: {}'.format('method-02', i + 1, ['%-.08f' % x for x in xi]))
 
@@ -138,15 +142,16 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('method-02', i, idx_kf, distance, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs_2'.format(output_dir), delta_xi)
-        np.save('{}/pose_estimate_2'.format(output_dir), pose_estimate)
-        np.save('{}/kf_estimate_2'.format(output_dir), kf_estimate)
-        np.save('{}/distance_trans'.format(output_dir), distance_trans)
-        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2.txt')
+        np.save('{}/delta_xs_2_lvl-{}'.format(output_dir, lvl), delta_xi)
+        np.save('{}/pose_estimate_2_lvl-{}'.format(output_dir, lvl), pose_estimate)
+        np.save('{}/kf_estimate_2_lvl-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/distance_trans_lvl-{}'.format(output_dir, lvl), distance_trans)
+        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2_lvl-{}.txt'.format(lvl))
+        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_2_lvl-{}.txt'.format(lvl))
     return delta_xi, pose_estimate, distance_trans
 
 
-def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=.9):
+def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=.9, lvl=5):
     timestamp = t1
     kf_estimate, delta_xi = [], []
     entropy_ratio, kf_idx = [], []
@@ -167,7 +172,8 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xi, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        xi, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2,
+                                       k=K, scaled_level=lvl)
         delta_xi.append(xi)
         logD('{:04d} -> xi: {}'.format(i, ['%-.08f' % x for x in xi]))
 
@@ -206,15 +212,15 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('method-03', i, key_frame_index, alpha))
 
     if len(kf_estimate) > 0:
-        np.save('{}/kf_estimate_3'.format(output_dir), kf_estimate)
-        np.save('{}/entropy_rate'.format(output_dir), entropy_ratio)
-        np.save('{}/kf_idx'.format(output_dir), kf_idx)
-        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3.txt')
+        np.save('{}/kf_estimate_3_lvl-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/entropy_rate_lvl-{}'.format(output_dir, lvl), entropy_ratio)
+        np.save('{}/kf_idx_lvl-{}'.format(output_dir, lvl), kf_idx)
+        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3_lvl-{}.txt'.format(lvl))
     return kf_estimate, entropy_ratio, kf_idx
 
 
 def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
-    kfs, deltas, errors = [], [], []
+    keyframes, deltas, errors = [], [], []
     # (d) optimization of keyframe pose
     for i, kf_i, idx in enumerate(zip(keyframes, kf_idx)):
         d, e = [], []
@@ -222,11 +228,13 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
             kf_j = keyframes[j]
-            xis, errors, _ = doAlignment(ref_img=rgbs[idx], ref_depth=depths[idx], target_img=rgbs[kf_idx[j]], target_depth=depths[kf_idx[j]], k=K)
+            ref_i, ref_d, t_i, t_d = rgbs[idx], depths[idx], rgbs[kf_idx[j]], depths[kf_idx[j]]
+            xi, errors, _ = doAlignment(ref_img=ref_i, ref_depth=ref_d, target_img=t_i, target_depth=t_d, k=K)
             kf_pose = np.identity(4)
-            t_inverse = inv(se3Exp(xis[-1]))
+            t_inverse = inv(se3Exp(xi))
             kf = kf_pose @ t_inverse
             T1, T2, _, rij = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+            # Gaussian-Newton
             xi = poseGraph(rgbs, depths, idx, kf_idx[j], K, rij)
             t_inverse = inv(se3Exp(xi))
             T1 = T1 @ t_inverse
@@ -234,11 +242,11 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
             q = Rotation.from_matrix(R).as_quat()
             kf = np.concatenate(([kf_i[0]], t, q))
             kf = [eval('{:08f}'.format(x)) for x in kf]
-            kfs.append(kf)
+            keyframes.append(kf)
             deltas.append(d)
             errors.append(e)
 
-    return kfs, deltas, errors
+    return keyframes, deltas, errors
 
 
 def taskE(K, input_dir, output_dir, kf, rgb, depth, t1):
