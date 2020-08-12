@@ -38,18 +38,11 @@ def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
 
 def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500):
     timestamp = t1
-    pose_estimate, kf_estimate, delta_xs = [], [], []
-    delta_xs_epoch, results_epoch = [], []
-    distance_trans = []
-
+    pose_estimate, kf_estimate, distance_trans, delta_xi = [], [], [], []
     start, idx_kf, need_kf = 0, 0, 0
+
     for i in np.arange(start, batch_size):
         if i == 0:
-            # initial result
-            tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
-            results_epoch.append(['%-.06f' % x for x in tmp])
-            # world-frame initial pose
-            pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
@@ -58,11 +51,9 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
-        xi = xis[-1]
-        delta_xs_epoch.append(xi)
-        delta_xs.append(xi)
-        logD('{} | {:04d} -> xi: {}'.format('method01', i + 1, ['%-.08f' % x for x in xi]))
+        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        delta_xi.append(xi)
+        logD('{} | {:04d} -> xi: {}'.format('method-01', i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
@@ -86,34 +77,26 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         q = Rotation.from_matrix(R).as_quat()
         result = np.concatenate(([timestamp[i]], t, q))
         result = [eval('%.08f' % x) for x in result]
-        results_epoch.append(result)
         pose_estimate.append(result)
         logV('{} | pose({:04d} -> {:04d}) =\n\t{}'.format('method-01', i, idx_kf, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs'.format(output_dir), delta_xs)
+        np.save('{}/delta_xs'.format(output_dir), delta_xi)
         np.save('{}/pose_estimate_1'.format(output_dir), pose_estimate)
         np.save('{}/kf_estimate_1'.format(output_dir), kf_estimate)
         np.save('{}/distance_trans'.format(output_dir), distance_trans)
         saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_b0.txt')
-        # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
-    return delta_xs, pose_estimate, distance_trans
+    return delta_xi, pose_estimate, distance_trans
 
 
 def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, d=0.052, a=0.012):
     timestamp = t1
-    pose_estimate, kf_estimate, delta_xs = [], [], []
-    delta_xs_epoch, results_epoch = [], []
+    pose_estimate, kf_estimate, delta_xi = [], [], []
     distance_trans = []
 
     start, idx_kf, need_kf = 0, 0, 0
     for i in np.arange(start, batch_size):
         if i == 0:
-            # initial result
-            tmp = [timestamp[i], 0, 0, 0, 0, 0, 0, 1]
-            results_epoch.append(['%-.06f' % x for x in tmp])
-            # world-frame initial pose
-            pw = np.array([0, 0, 0, 1])
             last_keyframe_pose = np.identity(4)
             c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
             d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
@@ -122,10 +105,8 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
-        xi = xis[-1]
-        delta_xs_epoch.append(xi)
-        delta_xs.append(xi)
+        xi, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        delta_xi.append(xi)
         logD('{} | {:04d} -> xi: {}'.format('method-02', i + 1, ['%-.08f' % x for x in xi]))
 
         # compute relative transform matrix
@@ -153,23 +134,21 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         q = Rotation.from_matrix(R).as_quat()
         result = np.concatenate(([timestamp[i]], t, q))
         result = [eval('%.08f' % x) for x in result]
-        results_epoch.append(result)
         pose_estimate.append(result)
         logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('method-02', i, idx_kf, distance, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs_2'.format(output_dir), delta_xs)
+        np.save('{}/delta_xs_2'.format(output_dir), delta_xi)
         np.save('{}/pose_estimate_2'.format(output_dir), pose_estimate)
         np.save('{}/kf_estimate_2'.format(output_dir), kf_estimate)
         np.save('{}/distance_trans'.format(output_dir), distance_trans)
         saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2.txt')
-        # saveData(trans_dist, outdir=output_dir, fn='dist_estimate_b.txt')
-    return delta_xs, pose_estimate, distance_trans
+    return delta_xi, pose_estimate, distance_trans
 
 
 def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, threshold=.9):
     timestamp = t1
-    kf_estimate, xi_array = [], []
+    kf_estimate, delta_xi = [], []
     entropy_ratio, kf_idx = [], []
 
     start, need_kf = 0, 0
@@ -188,9 +167,8 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
-        xi = xis[-1]
-        xi_array.append(xi)
+        xi, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
+        delta_xi.append(xi)
         logD('{:04d} -> xi: {}'.format(i, ['%-.08f' % x for x in xi]))
 
         if i == 0:
@@ -232,7 +210,6 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         np.save('{}/entropy_rate'.format(output_dir), entropy_ratio)
         np.save('{}/kf_idx'.format(output_dir), kf_idx)
         saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3.txt')
-        # saveData(entropy_ratio, outdir=output_dir, fn='alpha_estimate_c.txt')
     return kf_estimate, entropy_ratio, kf_idx
 
 
