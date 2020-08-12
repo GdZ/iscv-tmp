@@ -12,6 +12,8 @@ from utils.debug import logD
 from utils.debug import logV
 from utils.ImageUtils import downscale
 from utils.calcResiduals import relativeError
+from utils.deriveResiduals import derivePoseGraphResidualsNumeric
+from utils.alignment import poseGraph
 
 
 def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
@@ -56,7 +58,7 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
         xi = xis[-1]
         delta_xs_epoch.append(xi)
         delta_xs.append(xi)
@@ -120,7 +122,7 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xis, errors, _ = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
         xi = xis[-1]
         delta_xs_epoch.append(xi)
         delta_xs.append(xi)
@@ -186,34 +188,32 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         # compute the reference frame with the keyframe
         c2 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
         d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
-        xis, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, t_img=c2, t_depth=d2, k=K)
+        xis, errors, H_xi = doAlignment(ref_img=ckf, ref_depth=dkf, target_img=c2, target_depth=d2, k=K)
         xi = xis[-1]
         xi_array.append(xi)
         logD('{:04d} -> xi: {}'.format(i, ['%-.08f' % x for x in xi]))
 
         if i == 0:
-            base_line = H_xi
-            # plt.imshow(ckf, cmap='gray')
-            # plt.show()
+            H_xi_t0 = H_xi
 
         # compute relative transform matrix
         t_inverse = inv(se3Exp(xi))  # just make sure current frame to keyframe
 
         if i == key_frame_index + 1:
-            base_line = H_xi
+            H_xi_t0 = H_xi
 
         # entropy ratio, save entropy of all images
-        current_rate = H_xi / base_line
+        alpha = H_xi / H_xi_t0
         need_kf = need_kf + 1
-        if current_rate < threshold or need_kf >= 15:
+        if alpha < threshold or need_kf >= 15:
             # here just choose the keyframe & update keyframe
             last_keyframe_pose = last_keyframe_pose @ t_inverse
             ckf, dkf = c2, d2
             key_frame_index = i
             kf_idx.append(i)
             logD('keyframe_index: {}\n\tctx: {}'.format(i, last_keyframe_pose))
-            base_line = H_xi
-            current_rate = H_xi / base_line
+            H_xi_t0 = H_xi
+            alpha = H_xi / H_xi_t0
             # change the pose of last keyframe to new format, and add to list
             R = last_keyframe_pose[:3, :3]  # rotation matrix
             t = last_keyframe_pose[:3, 3]  # t
@@ -224,8 +224,8 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
             need_kf = 0
             logV('{} | ({:04d} -> {}) result: {}'.format('method-03', i, key_frame_index, kf))
 
-        entropy_ratio.append(current_rate)
-        logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('method-03', i, key_frame_index, current_rate))
+        entropy_ratio.append(alpha)
+        logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('method-03', i, key_frame_index, alpha))
 
     if len(kf_estimate) > 0:
         np.save('{}/kf_estimate_3'.format(output_dir), kf_estimate)
@@ -245,24 +245,21 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
             kf_j = keyframes[j]
-            xis, errors, _ = doAlignment(ref_img=rgbs[idx], ref_depth=depths[idx], t_img=rgbs[kf_idx[j]], t_depth=depths[kf_idx[j]], k=K)
+            xis, errors, _ = doAlignment(ref_img=rgbs[idx], ref_depth=depths[idx], target_img=rgbs[kf_idx[j]], target_depth=depths[kf_idx[j]], k=K)
             kf_pose = np.identity(4)
             t_inverse = inv(se3Exp(xis[-1]))
             kf = kf_pose @ t_inverse
-            T1, T2, _, error = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
-            # d.append(delta)
-            e.append(error)
-        # d = np.asarray(d).mean(axis=0)
-        e = np.asarray(e).mean(axis=0)
-        t_inverse = inv(se3Exp(e))
-        T1 = T1 @ t_inverse
-        R, t = T1[:3, :3], T1[:3, 3]
-        q = Rotation.from_matrix(R).as_quat()
-        kf = np.concatenate(([kf_i[0]], t, q))
-        kf = [eval('{:08f}'.format(x)) for x in kf]
-        kfs.append(kf)
-        deltas.append(d)
-        errors.append(e)
+            T1, T2, _, rij = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+            xi = poseGraph(rgbs, depths, idx, kf_idx[j], K, rij)
+            t_inverse = inv(se3Exp(xi))
+            T1 = T1 @ t_inverse
+            R, t = T1[:3, :3], T1[:3, 3]
+            q = Rotation.from_matrix(R).as_quat()
+            kf = np.concatenate(([kf_i[0]], t, q))
+            kf = [eval('{:08f}'.format(x)) for x in kf]
+            kfs.append(kf)
+            deltas.append(d)
+            errors.append(e)
 
     return kfs, deltas, errors
 

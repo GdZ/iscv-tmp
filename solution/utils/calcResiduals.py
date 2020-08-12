@@ -62,5 +62,5 @@ def relativeError(kf_ref, kf, delta):
     T1[:3, :3], T1[:3, 3] = r1, t1
     T2[:3, :3], T2[:3, 3] = r2, t2
     delta_t = inv(T1) @ T2
-    error = se3Log(delta_t @ delta)
-    return T1, T2, delta_t, error
+    residual = delta_t @ delta
+    return T1, T2, residual
