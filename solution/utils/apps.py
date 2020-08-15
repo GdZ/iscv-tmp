@@ -86,12 +86,12 @@ def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         logV('{} | pose({:04d} -> {:04d}) =\n\t{}'.format('method-01', i, idx_kf, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs_lvl-{}'.format(output_dir, lvl), delta_xi)
-        np.save('{}/pose_estimate_1_lvl-{}'.format(output_dir, lvl), pose_estimate)
-        np.save('{}/kf_estimate_1_lvl-{}'.format(output_dir, lvl), kf_estimate)
-        np.save('{}/distance_trans_lvl-{}'.format(output_dir, lvl), distance_trans)
-        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_1_lvl{}.txt'.format(lvl))
-        saveData(pose_estimate, outdir=output_dir, fn='kf_estimate_1_lvl{}.txt'.format(lvl))
+        np.save('{}/delta_xs-{}'.format(output_dir, lvl), delta_xi)
+        np.save('{}/pose_estimate_1-{}'.format(output_dir, lvl), pose_estimate)
+        np.save('{}/kf_estimate_1-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/distance_trans-{}'.format(output_dir, lvl), distance_trans)
+        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_1-{}.txt'.format(lvl))
+        saveData(pose_estimate, outdir=output_dir, fn='kf_estimate_1-{}.txt'.format(lvl))
     return delta_xi, pose_estimate, distance_trans
 
 
@@ -146,12 +146,12 @@ def method02(K, colors, depths, t1, input_dir='./data', output_dir='./output',
         logV('{} | pose({:04d} -> {:04d}) = {:.06f}\n\t{}'.format('method-02', i, idx_kf, distance, result))
 
     if len(pose_estimate) > 0:
-        np.save('{}/delta_xs_2_lvl-{}'.format(output_dir, lvl), delta_xi)
-        np.save('{}/pose_estimate_2_lvl-{}'.format(output_dir, lvl), pose_estimate)
-        np.save('{}/kf_estimate_2_lvl-{}'.format(output_dir, lvl), kf_estimate)
-        np.save('{}/distance_trans_lvl-{}'.format(output_dir, lvl), distance_trans)
-        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2_lvl-{}.txt'.format(lvl))
-        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_2_lvl-{}.txt'.format(lvl))
+        np.save('{}/delta_xs_2-{}'.format(output_dir, lvl), delta_xi)
+        np.save('{}/pose_estimate_2-{}'.format(output_dir, lvl), pose_estimate)
+        np.save('{}/kf_estimate_2-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/distance_trans-{}'.format(output_dir, lvl), distance_trans)
+        saveData(pose_estimate, outdir=output_dir, fn='pose_estimate_2-{}.txt'.format(lvl))
+        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_2-{}.txt'.format(lvl))
     return delta_xi, pose_estimate, distance_trans
 
 
@@ -216,18 +216,18 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
         logV('{} | entropy of ({:04d} -> {:04d}) = {}'.format('method-03', i, key_frame_index, alpha))
 
     if len(kf_estimate) > 0:
-        np.save('{}/kf_estimate_3_lvl-{}'.format(output_dir, lvl), kf_estimate)
-        np.save('{}/entropy_rate_lvl-{}'.format(output_dir, lvl), entropy_ratio)
-        np.save('{}/kf_idx_lvl-{}'.format(output_dir, lvl), kf_idx)
-        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3_lvl-{}.txt'.format(lvl))
+        np.save('{}/kf_estimate_3-{}'.format(output_dir, lvl), kf_estimate)
+        np.save('{}/entropy_rate-{}'.format(output_dir, lvl), entropy_ratio)
+        np.save('{}/kf_idx-{}'.format(output_dir, lvl), kf_idx)
+        saveData(kf_estimate, outdir=output_dir, fn='kf_estimate_3-{}.txt'.format(lvl))
     return kf_estimate, entropy_ratio, kf_idx
 
 
 def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
-    deltas, errors = [], []
+    kfd, deltas, kf_errors = [], [], []
     # (d) optimization of keyframe pose
     for i, (kf_i, idx) in enumerate(zip(keyframes, kf_idx.astype(np.int))):
-        d, e = [], []
+        kj, ej = [], []
         for j in [i - 1, i, i + 1]:
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
@@ -246,18 +246,20 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
 
             # Gaussian-Newton
             xi = poseGraph(c1, d1, c2, d2, K, rij)
-
             t_inverse = inv(se3Exp(xi))
             T1 = T1 @ t_inverse
             R, t = T1[:3, :3], T1[:3, 3]
             q = Rotation.from_matrix(R).as_quat()
             kf = np.concatenate(([kf_i[0]], t, q))
             kf = [eval('{:08f}'.format(x)) for x in kf]
-            keyframes.append(kf)
-            deltas.append(d)
-            errors.append(e)
+            kj.append(kf)
+        kj = np.asarray(kj)
+        kf_i[1:] / np.mean(kj[:,1:], axis=0)
+        # kfd.append(kf)
+        # deltas.append(d)
+        # kf_errors.append(e)
 
-    return keyframes, deltas, errors
+    return kfd, deltas, kf_errors
 
 
 def taskE(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):

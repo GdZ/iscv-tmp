@@ -40,7 +40,7 @@ def deriveResidualsAnalytic(ref_img, ref_depth, img, xi, k, norm_param, use_hube
     return Jac, residual, weights
 
 
-def derivePoseGraphResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm, rij):
+def derivePoseGraphResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubernorm):
     # Jac, residual, weights = [], [], []
     eps = 1e-6
     Jac = np.zeros(shape=(I.flatten().shape[0], 6))
@@ -50,7 +50,8 @@ def derivePoseGraphResidualsNumeric(IRef, DRef, I, xi, K, norm_param, use_hubern
         epsVec = np.zeros([6, 1])
         epsVec[j] = eps
         xiPerm = se3Log(se3Exp(epsVec) @ se3Exp(xi))
-        Jac[:, j] = (rij - residuals) / eps
+        r, w = calcResiduals(IRef, DRef, I, xiPerm, K, norm_param, use_hubernorm)
+        Jac[:, j] = (r - residuals) / eps
 
     return Jac, residuals, weights
 

@@ -76,9 +76,9 @@ def poseGraph(ref_img, ref_depth, target_img, target_depth, K, rij):
 
     ref_i, ref_d, ref_k = downscale(ref_img, ref_depth, K, 5)
     scaled_img, scaled_depth, scaled_k = downscale(target_img, target_depth, K, 5)
-
+    err_last = 1e10
     for i in np.arange(20):
-        Jac, residual, weight = derivePoseGraphResidualsNumeric(IRef=ref_i, DRef=ref_d, I=scaled_img, xi=xi, K=K, norm_param=norm_param, use_hubernorm=use_hubernorm, rij=rij)
+        Jac, residual, weight = derivePoseGraphResidualsNumeric(IRef=ref_i, DRef=ref_d, I=scaled_img, xi=xi, K=K, norm_param=norm_param, use_hubernorm=use_hubernorm)
         not_valid = np.isnan(np.sum(Jac, axis=1) + residual)
         residual[not_valid] = 0
         Jac[not_valid, :] = 0
