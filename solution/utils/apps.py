@@ -18,28 +18,32 @@ from utils.alignment import poseGraph
 
 def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
     # save result for (a)
-    i = np.random.randint(0, high=len(colors) - 1)
-    c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[i])))
-    d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[i]))) / 5000
     # draw figure
-    fig = plt.figure(figsize=(12, 6))
-    plt.title(t1[i])
-    for i in np.arange(1, 5):
-        si, sd, sk = downscale(c1, d1, K, i)
-        plt.subplot(2, 4, i)
-        plt.imshow(si)
-        plt.title('scale level = {}'.format(i))
-        plt.subplot(2, 4, i + 4)
-        plt.imshow(sd, cmap='gray')
-        plt.title('depth(scale={})'.format(i))
-    fig.savefig('{}/downscale-a.png'.format(output_dir))
+    # fig = plt.figure(figsize=(12, 6))
+    # plt.title(t1[i])
+    datasets = []
+    for j, t1, im, dep in enumerate(zip(t1, colors, depths)):
+        c1 = np.double(imReadByGray('{}/{}'.format(input_dir, colors[j])))
+        d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[j]))) / 5000
+        row = {'t1': t1, 'ds': []}
+        for i, key in enumerate(['c5', 'c4', 'c3', 'c2']):
+            si, sd, sk = downscale(c1, d1, K, 5-i)
+
+        # plt.subplot(2, 4, i)
+        # plt.imshow(si)
+        # plt.title('scale level = {}'.format(i))
+        # plt.subplot(2, 4, i + 4)
+        # plt.imshow(sd, cmap='gray')
+        # plt.title('depth(scale={})'.format(i))
+    # fig.savefig('{}/downscale-a.png'.format(output_dir))
+
     logV('taskA is finished.....')
 
 
 def method01(K, colors, depths, t1, input_dir='./data', output_dir='./output', batch_size=500, lvl=5):
     timestamp = t1
     pose_estimate, kf_estimate, distance_trans, delta_xi = [], [], [], []
-    start, idx_kf, need_kf = 0, 0, 0
+    start, idx_kf = 0, 0
 
     for i in np.arange(start, batch_size):
         if i == 0:
@@ -220,22 +224,29 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
 
 
 def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
-    keyframes, deltas, errors = [], [], []
+    deltas, errors = [], []
     # (d) optimization of keyframe pose
-    for i, kf_i, idx in enumerate(zip(keyframes, kf_idx)):
+    for i, (kf_i, idx) in enumerate(zip(keyframes, kf_idx.astype(np.int))):
         d, e = [], []
         for j in [i - 1, i, i + 1]:
             if j < 0 or j > len(keyframes) - 1:
                 j = (j + len(keyframes)) % len(keyframes)
             kf_j = keyframes[j]
-            ref_i, ref_d, t_i, t_d = rgbs[idx], depths[idx], rgbs[kf_idx[j]], depths[kf_idx[j]]
-            xi, errors, _ = doAlignment(ref_img=ref_i, ref_depth=ref_d, target_img=t_i, target_depth=t_d, k=K)
+            oidx = kf_idx.astype(np.int)[j]
+            ref_i, ref_d, t_i, t_d = rgbs[idx], depths[idx], rgbs[oidx], depths[oidx]
+            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, ref_i)))
+            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, ref_d))) / 5000
+            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, t_i)))
+            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, t_d))) / 5000
+            xi, errors, _ = doAlignment(ref_img=c1, ref_depth=c2, target_img=c2, target_depth=d2, k=K)
             kf_pose = np.identity(4)
             t_inverse = inv(se3Exp(xi))
             kf = kf_pose @ t_inverse
-            T1, T2, _, rij = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+            T1, T2, rij = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+
             # Gaussian-Newton
-            xi = poseGraph(rgbs, depths, idx, kf_idx[j], K, rij)
+            xi = poseGraph(c1, d1, c2, d2, K, rij)
+
             t_inverse = inv(se3Exp(xi))
             T1 = T1 @ t_inverse
             R, t = T1[:3, :3], T1[:3, 3]
@@ -249,7 +260,8 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
     return keyframes, deltas, errors
 
 
-def taskE(K, input_dir, output_dir, kf, rgb, depth, t1):
+def taskE(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
+
     pass
 
 

@@ -65,7 +65,7 @@ def doAlignment(ref_img, ref_depth, target_img, target_depth, k, scaled_level=5)
     return xi, err, H_xi
 
 
-def poseGraph(rgbs, depths, i, j, K, rij):
+def poseGraph(ref_img, ref_depth, target_img, target_depth, K, rij):
     xi = np.array([[0, 0, 0, 0, 0, 0]]).T
     use_hubernorm = True
     norm_param = 1e100
@@ -74,8 +74,8 @@ def poseGraph(rgbs, depths, i, j, K, rij):
     else:
         norm_param = 0.2
 
-    ref_i, ref_d, ref_k = downscale(rgbs[i], depths[i], K, 5)
-    scaled_img, scaled_depth, scaled_k = downscale(rgbs[j], depths[j], K, 5)
+    ref_i, ref_d, ref_k = downscale(ref_img, ref_depth, K, 5)
+    scaled_img, scaled_depth, scaled_k = downscale(target_img, target_depth, K, 5)
 
     for i in np.arange(20):
         Jac, residual, weight = derivePoseGraphResidualsNumeric(IRef=ref_i, DRef=ref_d, I=scaled_img, xi=xi, K=K, norm_param=norm_param, use_hubernorm=use_hubernorm, rij=rij)
