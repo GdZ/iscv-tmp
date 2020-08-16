@@ -324,14 +324,15 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
             t_inverse = inv(se3Exp(xx))
             kf_pose_j_opt = kf_transform_i @ t_inverse
             h_hat.append(kf_pose_j_opt)
-        hat = np.asarray(h_hat).mean()
-        # t_j = kf_pose_j_opt[:3, 3]
-        # r_j = kf_pose_j_opt[:3, :3]
-        # q_j = Rotation.from_matrix(r_j).as_quat()
-        # kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
+        hat = np.asarray(h_hat).mean(axis=0)
+        t_j = hat[:3, 3]
+        r_j = hat[:3, :3]
+        q_j = Rotation.from_matrix(r_j).as_quat()
+        kf_estimate[i][1:] = np.concatenate((t_j, q_j))
+        logV('{} {}'.format(local_frame_idx, kf_pose_i))
 
-    np.save('{}/kf_estimate_d'.format(output_dir), kf_estimate)
-    saveData(kf_estimate, output_dir, fn='kf_estimate_d.txt')
+    np.save('{}/kf_estimate_e'.format(output_dir), kf_estimate)
+    saveData(kf_estimate, output_dir, fn='kf_estimate_e.txt')
     return kf_estimate
 
 
