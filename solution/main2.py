@@ -49,9 +49,10 @@ def main(argv):
 
 def alignmentsMulti(input_dir, output_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
-    output_dir = '{}/{}'.format(output_dir, time.time())
-    os.mkdir(output_dir)
-    prepare(output_dir)
+    # output_dir = '{}/{}'.format(output_dir, time.time())
+    output_dir = '{}/{}'.format(output_dir, 1597495410.0373957)
+    # os.mkdir(output_dir)
+    # prepare(output_dir)
 
     # parallel running task
     # (b)
@@ -80,8 +81,8 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     # actual parameter, which is copy from visiom.tum
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
-    output_dir = 'output/1597067216.0324774'
-    output_dir = 'output/1597495410.0373957'
+    # output_dir = 'output/1597067216.0324774'
+    # output_dir = 'output/1597495410.0373957'
     # output_dir = 'output/tmp'
     kf_idx = np.load('{}/kf_idx-5.npy'.format(output_dir)).astype(int)
     tmp = np.zeros(kf_idx.size + 1)
