@@ -328,7 +328,7 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
         t_j = hat[:3, 3]
         r_j = hat[:3, :3]
         q_j = Rotation.from_matrix(r_j).as_quat()
-        kf_estimate[i][1:] = np.concatenate((t_j, q_j))
+        kf_estimate[i[0]][1:] = np.concatenate((t_j, q_j))
         logV('{} {}'.format(local_frame_idx, kf_pose_i))
 
     np.save('{}/kf_estimate_e'.format(output_dir), kf_estimate)
