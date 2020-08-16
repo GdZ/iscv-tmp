@@ -297,7 +297,7 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
         kf_transform_i[:3, 3] = t_i
         c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_frame_idx[0]])))
         d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[local_frame_idx[0]])))
-        h_hat = np.zeros(8)
+        h_hat = []
         for kf_idx_j, local_idx_j in zip(i[1:], local_frame_idx[1:]):
             kf_pose_j = keyframes[kf_idx_j]
             c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_idx_j])))
@@ -323,10 +323,12 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
                 err_last = err
             t_inverse = inv(se3Exp(xx))
             kf_pose_j_opt = kf_transform_i @ t_inverse
-            t_j = kf_pose_j_opt[:3, 3]
-            r_j = kf_pose_j_opt[:3, :3]
-            q_j = Rotation.from_matrix(r_j).as_quat()
-            kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
+            h_hat.append(kf_pose_j_opt)
+        hat = np.asarray(h_hat).mean()
+        # t_j = kf_pose_j_opt[:3, 3]
+        # r_j = kf_pose_j_opt[:3, :3]
+        # q_j = Rotation.from_matrix(r_j).as_quat()
+        # kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
 
     np.save('{}/kf_estimate_d'.format(output_dir), kf_estimate)
     saveData(kf_estimate, output_dir, fn='kf_estimate_d.txt')

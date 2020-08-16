@@ -80,7 +80,6 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     # actual parameter, which is copy from visiom.tum
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
-    # task (d)
     output_dir = 'output/1597067216.0324774'
     output_dir = 'output/1597495410.0373957'
     # output_dir = 'output/tmp'
@@ -89,14 +88,15 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     tmp[1:] = kf_idx
     kf_idx = tmp
     kf_estimate_3 = np.load('{}/kf_estimate_3-5.npy'.format(output_dir)).astype(np.float)
+
+    # task (d)
     kfs = taskD(K, keyframes=kf_estimate_3, kf_idx=kf_idx, rgbs=rgbs, depths=depths, t1=t1, input_dir=input_dir, output_dir=output_dir)
     # if len(kfs) > 0:
     #     np.save('{}/keyframe_d'.format(output_dir), kfs)
     #     saveData(kfs, outdir=input_dir, fn='estimate_d.txt')
 
     # task (e)
-    keyframe_e = taskE(K, kf_estimate_3, colors=rgbs, depths=depths, timestamp_color=t1,
-                       timestamp_depth=t2, input_dir=input_dir, output_dir=output_dir)
+    # keyframe_e = taskE(K, keyframes=kf_estimate_3, kf_idx=kf_idx, colors=rgbs, depths=depths, t1=t1, input_dir=input_dir, output_dir=output_dir)
     # if len(keyframe_e) > 0:
     #     np.save('{}/keyframe_e'.format(output_dir), keyframe_e)
     #     saveData(keyframe_e, outdir=input_dir, fn='estimate_e.txt')
