@@ -80,19 +80,25 @@ def alignment(input_dir, output_dir, t1, rgbs, t2, depths):
     K = np.array([[520.9, 0, 325.1], [0, 521.0, 249.7], [0, 0, 1]])
 
     # task (d)
-    kf_idx = np.load('{}/kf_idx.npy'.format(output_dir))
-    kf_estimate_c = np.load('{}/kf_estimate_c.npy'.format(output_dir))
+    output_dir = 'output/1597067216.0324774'
+    output_dir = 'output/1597495410.0373957'
+    # output_dir = 'output/tmp'
+    kf_idx = np.load('{}/kf3_idx.npy'.format(output_dir)).astype(int)
+    tmp = np.zeros(kf_idx.size + 1)
+    tmp[1:] = kf_idx
+    kf_idx = tmp
+    kf_estimate_c = np.load('{}/kf3_estimate.npy'.format(output_dir))
     kfs, deltas, errors = taskD(K, input_dir, keyframes=kf_estimate_c, kf_idx=kf_idx, rgbs=rgbs, depths=depths, t1=t1)
     if len(kfs) > 0:
         np.save('{}/keyframe_d'.format(output_dir), kfs)
         saveData(kfs, outdir=input_dir, fn='estimate_d.txt')
 
     # task (e)
-    # keyframe_e = taskE(K, input_dir, kf_estimate_c, colors=rgbs, depths=depths, timestamp_color=t1,
-    #                    timestamp_depth=t2)
-    # if len(keyframe_e) > 0:
-    #     np.save('{}/keyframe_e'.format(output_dir), keyframe_e)
-    #     saveData(keyframe_e, outdir=input_dir, fn='estimate_e.txt')
+    keyframe_e = taskE(K, input_dir, kf_estimate_c, colors=rgbs, depths=depths, timestamp_color=t1,
+                       timestamp_depth=t2)
+    if len(keyframe_e) > 0:
+        np.save('{}/keyframe_e'.format(output_dir), keyframe_e)
+        saveData(keyframe_e, outdir=input_dir, fn='estimate_e.txt')
 
 
 def show(fname):

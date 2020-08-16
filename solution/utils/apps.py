@@ -254,8 +254,8 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
             kf = [eval('{:08f}'.format(x)) for x in kf]
             kj.append(kf)
         kj = np.asarray(kj)
-        kf_i[1:] / np.mean(kj[:,1:], axis=0)
-        # kfd.append(kf)
+        tmp = kf_i[1:] / np.mean(kj[:,1:], axis=0)
+        kfd.append(kf)
         # deltas.append(d)
         # kf_errors.append(e)
 
@@ -263,8 +263,38 @@ def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
 
 
 def taskE(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
+    from sklearn.neighbors import NearestNeighbors, KDTree
+    kf1_t = keyframes[1:4]
+    kdt = KDTree(kf1_t, leaf_size=kf1_t.shape[0], metric='euclidean')
+    dist, idx = kdt.query(kf1_t, k=5, return_distance=True)  # select 5-nearest neighbour nodes.
 
-    pass
+    hs = []
+    for ix in idx:
+        kf_indice = kf_idx[ix[0]]
+        kf = keyframes[ix[0]]  # current keyframe
+        c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[kf_indice])))
+        d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[kf_indice]))) / 5000
+        c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[ix[1]])))
+        d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[ix[1]]))) / 5000
+        xi, errors, H_xi = doAlignment(ref_img=c1, ref_depth=d1, target_img=c2, target_depth=d2, k=K)
+
+        kf_pose = np.identity(4)
+        t_inverse = inv(se3Exp(xi))
+        kf = kf_pose @ t_inverse
+        T1, T2, rij = relativeError(kf_ref=keyframes[kf_indice], kf=keyframes[ix[1]], delta=kf)
+
+        # Gaussian-Newton
+        xi = poseGraph(c1, d1, c2, d2, K, rij)
+        t_inverse = inv(se3Exp(xi))
+        T1 = T1 @ t_inverse
+        R, t = T1[:3, :3], T1[:3, 3]
+        q = Rotation.from_matrix(R).as_quat()
+        # kf = np.concatenate(([kf_i[0]], t, q))
+        # kf = [eval('{:08f}'.format(x)) for x in kf]
+        # kj.append(kf)
+
+    # nbrs = NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(keyframes[:, 1:4])
+    # distance, indices = nbrs.kneighbors(keyframes[:, 1:4])
 
 
 def translation_distance(relative_pose):
