@@ -2,16 +2,17 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.linalg import inv
 from matplotlib import pyplot as plt
-
+from sklearn.neighbors import NearestNeighbors, KDTree
+from scipy.linalg import cho_factor, cho_solve
 # self defined function
 from utils.ImageUtils import imReadByGray
 from utils.alignment import doAlignment
 from utils.dataset import saveData
-from utils.se3 import se3Exp
+from utils.se3 import se3Exp, se3Log
 from utils.debug import logD
 from utils.debug import logV
 from utils.ImageUtils import downscale
-from utils.calcResiduals import relativeError
+from utils.calcResiduals import calculateJacobinResidual
 from utils.deriveResiduals import derivePoseGraphResidualsNumeric
 from utils.alignment import poseGraph
 
@@ -223,78 +224,113 @@ def method03(K, colors, depths, t1, input_dir='./data', output_dir='./output', b
     return kf_estimate, entropy_ratio, kf_idx
 
 
-def taskD(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
-    kfd, deltas, kf_errors = [], [], []
+def taskD(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir='./output'):
+    kf_estimate = keyframes.copy()
+    # find nearest neighbours
+    kf_translation = keyframes[:, 1:4]
+    kdt = KDTree(kf_translation, leaf_size=kf_translation.shape[0], metric='euclidean')
+    dist, idx = kdt.query(kf_translation, k=5, return_distance=True)  # select 5-nearest neighbour nodes.
+
+    # kfd, deltas, kf_errors = [], [], []
     # (d) optimization of keyframe pose
-    for i, (kf_i, idx) in enumerate(zip(keyframes, kf_idx.astype(np.int))):
-        kj, ej = [], []
-        for j in [i - 1, i, i + 1]:
-            if j < 0 or j > len(keyframes) - 1:
-                j = (j + len(keyframes)) % len(keyframes)
-            kf_j = keyframes[j]
-            oidx = kf_idx.astype(np.int)[j]
-            ref_i, ref_d, t_i, t_d = rgbs[idx], depths[idx], rgbs[oidx], depths[oidx]
-            c1 = np.double(imReadByGray('{}/{}'.format(input_dir, ref_i)))
-            d1 = np.double(imReadByGray('{}/{}'.format(input_dir, ref_d))) / 5000
-            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, t_i)))
-            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, t_d))) / 5000
-            xi, errors, _ = doAlignment(ref_img=c1, ref_depth=c2, target_img=c2, target_depth=d2, k=K)
+    for i, d in zip(idx, dist):
+        local_frame_idx = kf_idx.astype(int)[i]
+        kf_pose_i = keyframes[i][0]
+        t_i = kf_pose_i[1:4]
+        q_i = kf_pose_i[4:]
+        kf_transform_i = np.identity(4)
+        kf_transform_i[:3, :3] = Rotation.from_quat(q_i).as_matrix()
+        kf_transform_i[:3, 3] = t_i
+        c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_frame_idx[0]])))
+        d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[local_frame_idx[0]])))
+        for kf_idx_j, local_idx_j in zip(i[1:], local_frame_idx[1:]):
+            kf_pose_j = keyframes[kf_idx_j]
+            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_idx_j])))
+            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[local_idx_j])))
+            xi, errors, H_xi = doAlignment(ref_img=c1, ref_depth=c2, target_img=c2, target_depth=d2, k=K)
             kf_pose = np.identity(4)
             t_inverse = inv(se3Exp(xi))
-            kf = kf_pose @ t_inverse
-            T1, T2, rij = relativeError(kf_ref=kf_i, kf=kf_j, delta=kf)
+            kf_transform_ij = kf_pose @ t_inverse
+            #
+            xx = np.zeros(shape=(6,))
+            err_last = 1e10
+            for ii in range(20):
+                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j, kf_transform_ij=kf_transform_ij, delta=xx)
+                sigma = np.identity(6)
+                b_k = jacobin[:,:6].T @ sigma @ residual
+                h_k = jacobin[:,6:].T @ sigma @ jacobin[:,6:]
+                c, low = cho_factor(h_k)
+                upd = - cho_solve((c, low), np.eye(h_k.shape[0]))
+                xx = se3Log(se3Exp(np.sum(upd, axis=0)) @ se3Exp(xx))
+                err = np.mean(residual * residual)
+                if err / err_last > .995:
+                    break
+                err_last = err
+            t_inverse = inv(se3Exp(xx))
+            kf_pose_j_opt = kf_transform_i @ t_inverse
+            t_j = kf_pose_j_opt[:3, 3]
+            r_j = kf_pose_j_opt[:3, :3]
+            q_j = Rotation.from_matrix(r_j).as_quat()
+            kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
 
-            # Gaussian-Newton
-            xi = poseGraph(c1, d1, c2, d2, K, rij)
+    np.save('{}/kf_estimate_d'.format(output_dir), kf_estimate)
+    saveData(kf_estimate, output_dir, fn='kf_estimate_d.txt')
+    return kf_estimate
+
+
+def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir='./output'):
+    kf_estimate = keyframes.copy()
+    # find nearest neighbours
+    kf_translation = keyframes[:, 1:4]
+    kdt = KDTree(kf_translation, leaf_size=kf_translation.shape[0], metric='euclidean')
+    dist, idx = kdt.query(kf_translation, k=5, return_distance=True)  # select 5-nearest neighbour nodes.
+
+    # kfd, deltas, kf_errors = [], [], []
+    # (d) optimization of keyframe pose
+    for i, d in zip(idx, dist):
+        local_frame_idx = kf_idx.astype(int)[i]
+        kf_pose_i = keyframes[i][0]
+        t_i = kf_pose_i[1:4]
+        q_i = kf_pose_i[4:]
+        kf_transform_i = np.identity(4)
+        kf_transform_i[:3, :3] = Rotation.from_quat(q_i).as_matrix()
+        kf_transform_i[:3, 3] = t_i
+        c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_frame_idx[0]])))
+        d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[local_frame_idx[0]])))
+        h_hat = np.zeros(8)
+        for kf_idx_j, local_idx_j in zip(i[1:], local_frame_idx[1:]):
+            kf_pose_j = keyframes[kf_idx_j]
+            c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[local_idx_j])))
+            d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[local_idx_j])))
+            xi, errors, H_xi = doAlignment(ref_img=c1, ref_depth=c2, target_img=c2, target_depth=d2, k=K)
+            kf_pose = np.identity(4)
             t_inverse = inv(se3Exp(xi))
-            T1 = T1 @ t_inverse
-            R, t = T1[:3, :3], T1[:3, 3]
-            q = Rotation.from_matrix(R).as_quat()
-            kf = np.concatenate(([kf_i[0]], t, q))
-            kf = [eval('{:08f}'.format(x)) for x in kf]
-            kj.append(kf)
-        kj = np.asarray(kj)
-        tmp = kf_i[1:] / np.mean(kj[:,1:], axis=0)
-        kfd.append(kf)
-        # deltas.append(d)
-        # kf_errors.append(e)
+            kf_transform_ij = kf_pose @ t_inverse
+            #
+            xx = np.zeros(shape=(6,))
+            err_last = 1e10
+            for ii in range(20):
+                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j, kf_transform_ij=kf_transform_ij, delta=xx)
+                sigma = np.identity(6)
+                b_k = jacobin[:,:6].T @ sigma @ residual
+                h_k = jacobin[:,6:].T @ sigma @ jacobin[:,6:]
+                c, low = cho_factor(h_k)
+                upd = - cho_solve((c, low), np.eye(h_k.shape[0]))
+                xx = se3Log(se3Exp(np.sum(upd, axis=0)) @ se3Exp(xx))
+                err = np.mean(residual * residual)
+                if err / err_last > .995:
+                    break
+                err_last = err
+            t_inverse = inv(se3Exp(xx))
+            kf_pose_j_opt = kf_transform_i @ t_inverse
+            t_j = kf_pose_j_opt[:3, 3]
+            r_j = kf_pose_j_opt[:3, :3]
+            q_j = Rotation.from_matrix(r_j).as_quat()
+            kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
 
-    return kfd, deltas, kf_errors
-
-
-def taskE(K, input_dir, keyframes, kf_idx, rgbs, depths, t1):
-    from sklearn.neighbors import NearestNeighbors, KDTree
-    kf1_t = keyframes[1:4]
-    kdt = KDTree(kf1_t, leaf_size=kf1_t.shape[0], metric='euclidean')
-    dist, idx = kdt.query(kf1_t, k=5, return_distance=True)  # select 5-nearest neighbour nodes.
-
-    hs = []
-    for ix in idx:
-        kf_indice = kf_idx[ix[0]]
-        kf = keyframes[ix[0]]  # current keyframe
-        c1 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[kf_indice])))
-        d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[kf_indice]))) / 5000
-        c2 = np.double(imReadByGray('{}/{}'.format(input_dir, rgbs[ix[1]])))
-        d2 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[ix[1]]))) / 5000
-        xi, errors, H_xi = doAlignment(ref_img=c1, ref_depth=d1, target_img=c2, target_depth=d2, k=K)
-
-        kf_pose = np.identity(4)
-        t_inverse = inv(se3Exp(xi))
-        kf = kf_pose @ t_inverse
-        T1, T2, rij = relativeError(kf_ref=keyframes[kf_indice], kf=keyframes[ix[1]], delta=kf)
-
-        # Gaussian-Newton
-        xi = poseGraph(c1, d1, c2, d2, K, rij)
-        t_inverse = inv(se3Exp(xi))
-        T1 = T1 @ t_inverse
-        R, t = T1[:3, :3], T1[:3, 3]
-        q = Rotation.from_matrix(R).as_quat()
-        # kf = np.concatenate(([kf_i[0]], t, q))
-        # kf = [eval('{:08f}'.format(x)) for x in kf]
-        # kj.append(kf)
-
-    # nbrs = NearestNeighbors(n_neighbors=2, algorithm='ball_tree').fit(keyframes[:, 1:4])
-    # distance, indices = nbrs.kneighbors(keyframes[:, 1:4])
+    np.save('{}/kf_estimate_d'.format(output_dir), kf_estimate)
+    saveData(kf_estimate, output_dir, fn='kf_estimate_d.txt')
+    return kf_estimate
 
 
 def translation_distance(relative_pose):

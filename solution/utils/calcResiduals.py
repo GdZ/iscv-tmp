@@ -52,15 +52,30 @@ def calcResiduals(ref_img, ref_depth, img, xi, k, norm_param, use_hubernorm):
     return residuals.flatten(), weights.flatten()
 
 
-def relativeError(kf_ref, kf, delta):
-    t1, q1 = kf_ref[1:4], kf_ref[4:]
-    r1 = Rotation.from_quat(q1).as_matrix()
-    t2, q2 = kf[1:4], kf[4:]
-    r2 = Rotation.from_quat(q2).as_matrix()
-    T1, T2 = np.zeros(shape=(4,4)), np.zeros(shape=(4,4))
-    T1[3,3], T2[3,3] = 1, 1
-    T1[:3, :3], T1[:3, 3] = r1, t1
-    T2[:3, :3], T2[:3, 3] = r2, t2
-    delta_t = inv(T1) @ T2
-    residual = delta_t @ delta
-    return T1, T2, residual
+def calculateJacobinResidual(kf_pose_ref, kf_pose, kf_transform_ij, delta):
+    t_i, q_i = kf_pose_ref[1:4], kf_pose_ref[4:]
+    R_i = Rotation.from_quat(q_i).as_matrix()
+    t_j, q_j = kf_pose[1:4], kf_pose[4:]
+    R_j = Rotation.from_quat(q_j).as_matrix()
+    T_i, T_j = np.zeros(shape=(4,4)), np.zeros(shape=(4,4))
+    T_i[3,3], T_j[3,3] = 1, 1
+    T_i[:3, :3], T_i[:3, 3] = R_i, t_i
+    T_j[:3, :3], T_j[:3, 3] = R_j, t_j
+
+    jacobian = np.zeros(shape=(6, 12))
+    eps = 1e-6
+    residual = se3Log(np.linalg.inv(kf_transform_ij) @ np.linalg.inv(T_i) @ T_j)
+    # devrate for the first variable i
+    for k in np.arange(6):
+        delta_xi_i, delta_xi_j = delta.copy(), delta.copy()
+        delta_xi_i[k] = eps
+        residual_k = se3Log(np.linalg.inv(kf_transform_ij) @ np.linalg.inv(T_i) @ se3Exp(- delta_xi_i) @ se3Exp(delta_xi_j) @ T_j)
+        jacobian[:, k] = (residual_k - residual) / eps
+    # devrate for the second variable j
+    for k in np.arange(6):
+        delta_xi_i, delta_xi_j = delta.copy(), delta.copy()
+        delta_xi_j[k] = eps
+        residual_k = se3Log(np.linalg.inv(kf_transform_ij) @ np.linalg.inv(T_i) @ se3Exp(- delta_xi_i) @ se3Exp(delta_xi_j) @ T_j)
+        jacobian[:, k+6] = (residual_k - residual) / eps
+
+    return residual, jacobian
