@@ -272,6 +272,7 @@ def taskD(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
             r_j = kf_pose_j_opt[:3, :3]
             q_j = Rotation.from_matrix(r_j).as_quat()
             kf_estimate[kf_idx_j][1:] = np.concatenate((t_j, q_j))
+            logV('{} {}'.format(kf_idx_j, kf_estimate[kf_idx_j]))
 
     np.save('{}/kf_estimate_d'.format(output_dir), kf_estimate)
     saveData(kf_estimate, output_dir, fn='kf_estimate_d.txt')
