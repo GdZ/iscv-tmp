@@ -28,7 +28,7 @@ def taskA(K, colors, depths, t1, input_dir='./data', output_dir='./output'):
         d1 = np.double(imReadByGray('{}/{}'.format(input_dir, depths[j]))) / 5000
         row = {'t1': t1, 'ds': []}
         for i, key in enumerate(['c5', 'c4', 'c3', 'c2']):
-            si, sd, sk = downscale(c1, d1, K, 5-i)
+            si, sd, sk = downscale(c1, d1, K, 5 - i)
 
         # plt.subplot(2, 4, i)
         # plt.imshow(si)
@@ -255,10 +255,11 @@ def taskD(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
             xx = np.zeros(shape=(6,))
             err_last = 1e10
             for ii in range(20):
-                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j, kf_transform_ij=kf_transform_ij, delta=xx)
+                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j,
+                                                             kf_transform_ij=kf_transform_ij, delta=xx)
                 sigma = np.identity(6)
-                b_k = jacobin[:,:6].T @ sigma @ residual
-                h_k = jacobin[:,6:].T @ sigma @ jacobin[:,6:]
+                b_k = jacobin[:, :6].T @ sigma @ residual
+                h_k = jacobin[:, 6:].T @ sigma @ jacobin[:, 6:]
                 c, low = cho_factor(h_k)
                 upd = - cho_solve((c, low), np.eye(h_k.shape[0]))
                 xx = se3Log(se3Exp(np.sum(upd, axis=0)) @ se3Exp(xx))
@@ -311,10 +312,11 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
             xx = np.zeros(shape=(6,))
             err_last = 1e10
             for ii in range(20):
-                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j, kf_transform_ij=kf_transform_ij, delta=xx)
+                residual, jacobin = calculateJacobinResidual(kf_pose_ref=kf_pose_i, kf_pose=kf_pose_j,
+                                                             kf_transform_ij=kf_transform_ij, delta=xx)
                 sigma = np.identity(6)
-                b_k = jacobin[:,:6].T @ sigma @ residual
-                h_k = jacobin[:,6:].T @ sigma @ jacobin[:,6:]
+                b_k = jacobin[:, :6].T @ sigma @ residual
+                h_k = jacobin[:, 6:].T @ sigma @ jacobin[:, 6:]
                 c, low = cho_factor(h_k)
                 upd = - cho_solve((c, low), np.eye(h_k.shape[0]))
                 xx = se3Log(se3Exp(np.sum(upd, axis=0)) @ se3Exp(xx))
@@ -330,7 +332,7 @@ def taskE(K, keyframes, kf_idx, rgbs, depths, t1, input_dir='./data', output_dir
         r_j = hat[:3, :3]
         q_j = Rotation.from_matrix(r_j).as_quat()
         kf_estimate[i[0]][1:] = np.concatenate((t_j, q_j))
-        logV('{} {}'.format(local_frame_idx, kf_pose_i))
+        logV('{} {}'.format(i[0], kf_pose_i))
 
     np.save('{}/kf_estimate_e'.format(output_dir), kf_estimate)
     saveData(kf_estimate, output_dir, fn='kf_estimate_e.txt')
